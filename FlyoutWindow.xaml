@@ -118,22 +118,24 @@
                     <!-- Textos con Marquee dinámico -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                         <Grid x:Name="FlyoutTitleContainer" ClipToBounds="True" Height="19">
-                            <TextBlock x:Name="FlyoutTitle" Text="Sin música" Foreground="#FFFFFF" 
-                                       FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"
-                                       HorizontalAlignment="Left">
-                                <TextBlock.RenderTransform>
-                                    <TranslateTransform x:Name="FlyoutTitleTransform" X="0"/>
-                                </TextBlock.RenderTransform>
-                            </TextBlock>
+                            <Canvas Height="19">
+                                <TextBlock x:Name="FlyoutTitle" Text="Sin música" Foreground="#FFFFFF" 
+                                           FontSize="12.5" FontWeight="SemiBold">
+                                    <TextBlock.RenderTransform>
+                                        <TranslateTransform x:Name="FlyoutTitleTransform" X="0"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                            </Canvas>
                         </Grid>
                         <Grid x:Name="FlyoutArtistContainer" ClipToBounds="True" Height="16" Margin="0,2,0,0">
-                            <TextBlock x:Name="FlyoutArtist" Text="Reproductor inactivo" Foreground="#A0A0A0" 
-                                       FontSize="10.5" VerticalAlignment="Center"
-                                       HorizontalAlignment="Left">
-                                <TextBlock.RenderTransform>
-                                    <TranslateTransform x:Name="FlyoutArtistTransform" X="0"/>
-                                </TextBlock.RenderTransform>
-                            </TextBlock>
+                            <Canvas Height="16">
+                                <TextBlock x:Name="FlyoutArtist" Text="Reproductor inactivo" Foreground="#A0A0A0" 
+                                           FontSize="10.5">
+                                    <TextBlock.RenderTransform>
+                                        <TranslateTransform x:Name="FlyoutArtistTransform" X="0"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                            </Canvas>
                         </Grid>
                     </StackPanel>
                 </Grid>

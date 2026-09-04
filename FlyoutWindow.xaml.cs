@@ -92,6 +92,8 @@ namespace TaskbarMusicWidget
             FlyoutCover.Source = cover;
             FlyoutTitle.Text = string.IsNullOrWhiteSpace(title) ? I18n.NoMusic : title;
             FlyoutArtist.Text = string.IsNullOrWhiteSpace(artist) ? I18n.PlayerInactive : artist;
+            FlyoutTitle.ToolTip = FlyoutTitle.Text;
+            FlyoutArtist.ToolTip = FlyoutArtist.Text;
 
             // Actualizar icono de Play/Pausa en el botón circular blanco
             if (FlyoutPlayPausePath != null)
