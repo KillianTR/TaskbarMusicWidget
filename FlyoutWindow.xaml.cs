@@ -61,11 +61,15 @@ namespace TaskbarMusicWidget
         {
             this.Left = left;
             this.Top = top;
+            bool wasHidden = this.Visibility != Visibility.Visible;
             this.Visibility = Visibility.Visible;
             ActualizarMarqueeFlyout();
 
-            var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180));
-            this.BeginAnimation(OpacityProperty, fadeIn);
+            if (wasHidden || this.Opacity < 0.95)
+            {
+                var fadeIn = new DoubleAnimation(this.Opacity, 1, TimeSpan.FromMilliseconds(180));
+                this.BeginAnimation(OpacityProperty, fadeIn);
+            }
         }
 
         public void HideFlyout()
@@ -78,6 +82,12 @@ namespace TaskbarMusicWidget
                 if (this.Opacity == 0)
                 {
                     this.Visibility = Visibility.Collapsed;
+                    FlyoutTitle.Tag = null;
+                    FlyoutArtist.Tag = null;
+                    FlyoutTitleTransform.BeginAnimation(TranslateTransform.XProperty, null);
+                    FlyoutArtistTransform.BeginAnimation(TranslateTransform.XProperty, null);
+                    FlyoutTitleTransform.X = 0;
+                    FlyoutArtistTransform.X = 0;
                 }
             };
             this.BeginAnimation(OpacityProperty, fadeOut);
@@ -270,23 +280,39 @@ namespace TaskbarMusicWidget
 
         private static void AplicarMarquee(TextBlock tb, FrameworkElement container, TranslateTransform transform)
         {
-            transform.BeginAnimation(TranslateTransform.XProperty, null);
-            transform.X = 0;
-
             if (string.IsNullOrWhiteSpace(tb.Text) || 
                 tb.Text == I18n.NoMusic || 
                 tb.Text == I18n.PlayerInactive || 
                 tb.Text == "Sin música" || 
                 tb.Text == "No music playing")
+            {
+                transform.BeginAnimation(TranslateTransform.XProperty, null);
+                transform.X = 0;
+                tb.Tag = null;
                 return;
+            }
 
-            double textWidth = MedirAnchoTexto(tb);
-            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 250;
+            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 236;
+
+            // Medir el ancho real del texto usando el mayor entre DesiredSize y FormattedText
+            tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            double textWidth = Math.Max(tb.DesiredSize.Width, MedirAnchoTexto(tb));
 
             if (textWidth > containerWidth + 4)
             {
-                // Margen de 16px para garantizar que se lean hasta los últimos caracteres y paréntesis
-                double scrollDistance = -(textWidth - containerWidth + 16);
+                string cacheKey = $"{tb.Text}|{containerWidth:F0}";
+                if (tb.Tag as string == cacheKey && transform.HasAnimatedProperties)
+                {
+                    // La animación ya está activa para este texto y tamaño; no reiniciar para no interrumpir el desplazamiento
+                    return;
+                }
+
+                tb.Tag = cacheKey;
+                transform.BeginAnimation(TranslateTransform.XProperty, null);
+                transform.X = 0;
+
+                // Margen generoso de 35px para garantizar que se lean hasta los últimos caracteres y paréntesis sin cortar
+                double scrollDistance = -(textWidth - containerWidth + 35);
                 double scrollTimeSec = Math.Max(2.5, Math.Abs(scrollDistance) / 22.0);
                 double pauseStart = 2.0; // 2 segundos al inicio
                 double pauseEnd = 2.0;   // 2 segundos en el final para leer cómodamente
@@ -312,6 +338,12 @@ namespace TaskbarMusicWidget
                 anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t5)));
 
                 transform.BeginAnimation(TranslateTransform.XProperty, anim);
+            }
+            else
+            {
+                transform.BeginAnimation(TranslateTransform.XProperty, null);
+                transform.X = 0;
+                tb.Tag = null;
             }
         }
 
