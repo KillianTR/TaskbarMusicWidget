@@ -1,6 +1,6 @@
 # 🎵 Taskbar Music Widget (Windows 11 / 10)
 
-![Version](https://img.shields.io/badge/version-v0.8.1-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.2-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -68,6 +68,10 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.8.2
+- **Ajuste de Proporción en Barra (Hotfix):** Reducción de la anchura total a 230px, eliminando el espacio excesivo entre el texto y los botones para un diseño compacto y armonioso.
+- **Activación Óptima del Marquee:** Con el contenedor ajustado a ~110px, cualquier título de longitud estándar o media activa de forma natural el desplazamiento cinemático sin generar huecos en títulos cortos.
 
 ### v0.8.1
 - **Internacionalización Dinámica (i18n):** Detección automática del idioma del sistema operativo (Español / Inglés).
