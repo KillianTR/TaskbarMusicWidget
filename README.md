@@ -1,6 +1,6 @@
 # 🎵 Taskbar Music Widget (Windows 11 / 10)
 
-![Version](https://img.shields.io/badge/version-v0.8.3-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.4-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -68,6 +68,10 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.8.4
+- **Calibración de Espaciado del Flyout estilo Windows 11 (Hotfix):** Se ajusta la posición vertical de la tarjeta flotante para dejar un espacio libre de **12px** respecto al borde superior de la barra de tareas, emulando con exactitud la elevación del Centro de Notificaciones y Calendario nativo de Windows 11.
+- **Suavizado de Transición del Cursor:** Aumento del temporizador de cierre a 400ms para permitir una navegación cómoda y continua entre el widget de la barra y el cuadro flotante sin cierres accidentales.
 
 ### v0.8.3
 - **Corrección de Recorte y Reinicio del Marquee (Hotfix):** Se soluciona el problema por el cual el título de canciones largas se interrumpía prematuramente (ej. deteniéndose en *"bert mccrac"* en el flyout o *"yungb"* en el widget de la barra).
