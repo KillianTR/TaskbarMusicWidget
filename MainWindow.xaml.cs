@@ -227,6 +227,7 @@ namespace TaskbarMusicWidget
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             PosicionarEnBarra();
+            InicializarTextosLocalizados();
 
             try
             {
@@ -246,11 +247,24 @@ namespace TaskbarMusicWidget
             }
             catch
             {
-                TxtTitle.Text = "Error al iniciar";
-                TxtArtist.Text = "Verifica permisos";
+                TxtTitle.Text = I18n.StartupError;
+                TxtArtist.Text = I18n.CheckPermissions;
             }
 
             _watchdogTimer.Start();
+        }
+
+        private void InicializarTextosLocalizados()
+        {
+            TxtTitle.Text = I18n.NoMusic;
+            TxtArtist.Text = I18n.Waiting;
+            BtnPrev.ToolTip = I18n.PrevTooltip;
+            BtnPlayPause.ToolTip = I18n.PlayPauseTooltip;
+            BtnNext.ToolTip = I18n.NextTooltip;
+            if (AlbumArtBorder != null) AlbumArtBorder.ToolTip = I18n.OpenPlayerTooltip;
+            if (TrackInfoPanel != null) TrackInfoPanel.ToolTip = I18n.OpenPlayerTooltip;
+            if (MenuReconnectItem != null) MenuReconnectItem.Header = I18n.MenuReconnect;
+            if (MenuExitItem != null) MenuExitItem.Header = I18n.MenuExit;
         }
 
         private void WatchdogTimer_Tick(object? sender, EventArgs e)
@@ -415,8 +429,8 @@ namespace TaskbarMusicWidget
             else
             {
                 _isPlaying = false;
-                _currentTitle = "Sin música";
-                _currentArtist = "Reproductor inactivo";
+                _currentTitle = I18n.NoMusic;
+                _currentArtist = I18n.PlayerInactive;
                 _currentCover = null;
                 _currentPosition = TimeSpan.Zero;
                 _duration = TimeSpan.Zero;
@@ -607,7 +621,7 @@ namespace TaskbarMusicWidget
                 return a.Trim();
             }
 
-            return "Reproduciendo";
+            return I18n.PlayingFallback;
         }
 
         private async void RefrescarDatos()
@@ -1185,7 +1199,7 @@ namespace TaskbarMusicWidget
             if (vol < 0) return;
 
             _volumeToastTimer?.Stop();
-            TxtArtist.Text = $"🔊 Volumen: {vol}%";
+            TxtArtist.Text = I18n.VolumeToast(vol);
             TxtArtist.Foreground = (SolidColorBrush)new BrushConverter().ConvertFrom("#1ED760")!;
 
             _volumeToastTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1300) };
@@ -1217,7 +1231,12 @@ namespace TaskbarMusicWidget
             transform.BeginAnimation(TranslateTransform.XProperty, null);
             transform.X = 0;
 
-            if (string.IsNullOrWhiteSpace(tb.Text) || tb.Text == "Sin música" || tb.Text == "Reproductor inactivo" || tb.Text == "Esperando...")
+            if (string.IsNullOrWhiteSpace(tb.Text) || 
+                tb.Text == I18n.NoMusic || 
+                tb.Text == I18n.PlayerInactive || 
+                tb.Text == I18n.Waiting ||
+                tb.Text == "Sin música" || 
+                tb.Text == "No music playing")
                 return;
 
             double textWidth = MedirAnchoTexto(tb);

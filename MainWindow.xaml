@@ -50,9 +50,9 @@
 
     <Window.ContextMenu>
         <ContextMenu Background="#202020" Foreground="#FFFFFF" BorderBrush="#33FFFFFF">
-            <MenuItem Header="Reconectar reproductor" Click="MenuReconnect_Click"/>
+            <MenuItem x:Name="MenuReconnectItem" Header="Reconectar reproductor" Click="MenuReconnect_Click"/>
             <Separator Background="#33FFFFFF"/>
-            <MenuItem Header="Cerrar widget" Click="MenuExit_Click"/>
+            <MenuItem x:Name="MenuExitItem" Header="Cerrar widget" Click="MenuExit_Click"/>
         </ContextMenu>
     </Window.ContextMenu>
 
@@ -70,14 +70,14 @@
             </Grid.ColumnDefinitions>
 
             <!-- Carátula pequeña (Clic para abrir reproductor) -->
-            <Border Grid.Column="0" Width="26" Height="26" CornerRadius="4" 
+            <Border x:Name="AlbumArtBorder" Grid.Column="0" Width="26" Height="26" CornerRadius="4" 
                     ClipToBounds="True" Background="#2A2A2A" VerticalAlignment="Center"
                     Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
                 <Image x:Name="AlbumArt" Stretch="UniformToFill"/>
             </Border>
 
             <!-- Título y Artista (Clic para abrir reproductor + Marquee bidireccional) -->
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,6,0"
+            <StackPanel x:Name="TrackInfoPanel" Grid.Column="1" VerticalAlignment="Center" Margin="6,0,6,0"
                         Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
                 <Grid x:Name="TitleContainer" ClipToBounds="True" Height="15">
                     <TextBlock x:Name="TxtTitle" Text="Sin música" Foreground="#FFFFFF" 
