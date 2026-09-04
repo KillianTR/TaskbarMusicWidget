@@ -195,8 +195,8 @@ namespace TaskbarMusicWidget
             _watchdogTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
             _watchdogTimer.Tick += WatchdogTimer_Tick;
 
-            // Temporizador debounce para cerrar la tarjeta flotante suavemente
-            _closeFlyoutTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+            // Temporizador debounce para cerrar la tarjeta flotante suavemente al salir el cursor
+            _closeFlyoutTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
             _closeFlyoutTimer.Tick += CloseFlyoutTimer_Tick;
 
             SystemEvents.DisplaySettingsChanged += (s, e) => Dispatcher.Invoke(PosicionarEnBarra);
@@ -1325,7 +1325,11 @@ namespace TaskbarMusicWidget
             if (_flyoutWindow != null)
             {
                 double flyoutLeft = this.Left + (this.Width - _flyoutWindow.Width) / 2;
-                double flyoutTop = this.Top - _flyoutWindow.Height + 2;
+
+                // Espacio de ~12px entre la tarjeta flotante y la barra de tareas al estilo nativo de Windows 11
+                // (Se descuenta el margen de 10px del borde interno de FlyoutWindow)
+                double taskbarTop = SystemParameters.WorkArea.Bottom;
+                double flyoutTop = taskbarTop - _flyoutWindow.Height - 2;
 
                 // Evitar salirse de la pantalla horizontalmente
                 double screenWidth = SystemParameters.PrimaryScreenWidth;
