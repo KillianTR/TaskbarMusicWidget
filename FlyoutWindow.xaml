@@ -103,7 +103,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Fila 1: Carátula, Título y Artista (Clic para enfocar la app) -->
-                <Grid Grid.Row="0" Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
+                <Grid x:Name="FlyoutHeaderGrid" Grid.Row="0" Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>

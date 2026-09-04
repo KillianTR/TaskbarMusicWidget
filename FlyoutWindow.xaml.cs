@@ -36,6 +36,17 @@ namespace TaskbarMusicWidget
             _mainWindow = mainWindow;
             Opacity = 0;
             Visibility = Visibility.Collapsed;
+            InicializarTextosLocalizados();
+        }
+
+        private void InicializarTextosLocalizados()
+        {
+            FlyoutTitle.Text = I18n.NoMusic;
+            FlyoutArtist.Text = I18n.PlayerInactive;
+            BtnFlyoutPrev.ToolTip = I18n.PrevTooltip;
+            BtnFlyoutPlayPause.ToolTip = I18n.PlayPauseTooltip;
+            BtnFlyoutNext.ToolTip = I18n.NextTooltip;
+            if (FlyoutHeaderGrid != null) FlyoutHeaderGrid.ToolTip = I18n.OpenPlayerTooltip;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -75,8 +86,8 @@ namespace TaskbarMusicWidget
         public void UpdateTrackInfo(ImageSource? cover, string title, string artist, bool isPlaying)
         {
             FlyoutCover.Source = cover;
-            FlyoutTitle.Text = string.IsNullOrWhiteSpace(title) ? "Sin música" : title;
-            FlyoutArtist.Text = string.IsNullOrWhiteSpace(artist) ? "Reproductor inactivo" : artist;
+            FlyoutTitle.Text = string.IsNullOrWhiteSpace(title) ? I18n.NoMusic : title;
+            FlyoutArtist.Text = string.IsNullOrWhiteSpace(artist) ? I18n.PlayerInactive : artist;
 
             // Actualizar icono de Play/Pausa en el botón circular blanco
             if (FlyoutPlayPausePath != null)
@@ -146,21 +157,21 @@ namespace TaskbarMusicWidget
                 ShuffleIconPath.Fill = spotifyGreen;
                 ShuffleDot.Visibility = Visibility.Visible;
                 SmartShuffleSparkle.Visibility = Visibility.Visible;
-                BtnFlyoutShuffle.ToolTip = "Aleatorio inteligente (Smart Shuffle)";
+                BtnFlyoutShuffle.ToolTip = I18n.ShuffleTooltipSmart;
             }
             else if (isShuffleActive)
             {
                 ShuffleIconPath.Fill = spotifyGreen;
                 ShuffleDot.Visibility = Visibility.Visible;
                 SmartShuffleSparkle.Visibility = Visibility.Collapsed;
-                BtnFlyoutShuffle.ToolTip = "Aleatorio activado";
+                BtnFlyoutShuffle.ToolTip = I18n.ShuffleTooltipOn;
             }
             else
             {
                 ShuffleIconPath.Fill = inactiveGray;
                 ShuffleDot.Visibility = Visibility.Collapsed;
                 SmartShuffleSparkle.Visibility = Visibility.Collapsed;
-                BtnFlyoutShuffle.ToolTip = "Activar aleatorio";
+                BtnFlyoutShuffle.ToolTip = I18n.ShuffleTooltipOff;
             }
         }
 
@@ -202,16 +213,19 @@ namespace TaskbarMusicWidget
                     RepeatIconPath.Fill = inactiveGray;
                     RepeatDot.Visibility = Visibility.Collapsed;
                     RepeatOneBadge.Visibility = Visibility.Collapsed;
+                    BtnFlyoutRepeat.ToolTip = I18n.RepeatTooltipOff;
                     break;
                 case MediaPlaybackAutoRepeatMode.List:
                     RepeatIconPath.Fill = spotifyGreen;
                     RepeatDot.Visibility = Visibility.Visible;
                     RepeatOneBadge.Visibility = Visibility.Collapsed;
+                    BtnFlyoutRepeat.ToolTip = I18n.RepeatTooltipAll;
                     break;
                 case MediaPlaybackAutoRepeatMode.Track:
                     RepeatIconPath.Fill = spotifyGreen;
                     RepeatDot.Visibility = Visibility.Visible;
                     RepeatOneBadge.Visibility = Visibility.Visible;
+                    BtnFlyoutRepeat.ToolTip = I18n.RepeatTooltipOne;
                     break;
             }
         }
@@ -259,7 +273,11 @@ namespace TaskbarMusicWidget
             transform.BeginAnimation(TranslateTransform.XProperty, null);
             transform.X = 0;
 
-            if (string.IsNullOrWhiteSpace(tb.Text) || tb.Text == "Sin música" || tb.Text == "Reproductor inactivo")
+            if (string.IsNullOrWhiteSpace(tb.Text) || 
+                tb.Text == I18n.NoMusic || 
+                tb.Text == I18n.PlayerInactive || 
+                tb.Text == "Sin música" || 
+                tb.Text == "No music playing")
                 return;
 
             double textWidth = MedirAnchoTexto(tb);
