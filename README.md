@@ -22,7 +22,7 @@ Un widget nativo, ligero y elegante para la barra de tareas de Windows que propo
   - Implementado tanto en el widget de la barra como en la tarjeta flotante (*Flyout*).
   - Medición tipográfica exacta subpíxel mediante `FormattedText` para evitar cualquier recorte accidental.
   - Pausas estratégicas de 2 segundos al inicio y al final de cada ciclo, permitiendo leer títulos y nombres de artistas largos con total comodidad y sin prisas.
-- **Soporte Multilingüe Automático (Español / English):** Detecta automáticamente el idioma de visualización de Windows del sistema (`CultureInfo.CurrentUICulture`), traduciendo al instante todos los textos del widget, controles del flyout, notificaciones HUD de volumen y menús contextuales.
+- **Soporte Multilingüe de la Interfaz (Español / English):** Detecta automáticamente el idioma de visualización de Windows (`CultureInfo.CurrentUICulture`), adaptando al instante los textos de la interfaz (como *"Sin música"* / *"No music playing"*), controles del flyout, notificaciones HUD de volumen y menús contextuales, preservando siempre intactos y fidedignos los títulos originales de las canciones y vídeos.
 - **Aleatorio Inteligente (*Smart Shuffle*) de Spotify:** Integración bidireccional con Spotify mediante **Windows UI Automation** que detecta y conmuta entre *Desactivado*, *Aleatorio normal* y *Smart Shuffle* con su destello característico (`✦`).
 - **Control de Volumen con Rueda del Ratón:** Ajuste directo del volumen maestro del sistema en saltos exactos del **5%** mediante interfaces COM de bajo nivel (**CoreAudio IAudioEndpointVolume**).
 - **Enfoque Inteligente y Conmutación de Pestañas:**
@@ -75,7 +75,7 @@ El ejecutable listo para usar se generará en:
 
 ### v0.8.1
 - **Internacionalización Dinámica (i18n):** Detección automática del idioma del sistema operativo (Español / Inglés).
-- **Traducción Integral:** Adaptación en tiempo real de títulos por defecto, tooltips descriptivos, notificaciones HUD de volumen y menús contextuales.
+- **Traducción de Interfaz y Estados:** Adaptación en tiempo real de los textos del HUD (ej. *"Sin música"* / *"No music playing"*), tooltips descriptivos, notificaciones de volumen y menús contextuales. Los títulos y nombres originales de canciones y vídeos se preservan intactos sin alteraciones.
 - **Integración de Demo Visual:** Incorporación de `demo.gif` con reproducción automática continua en el README principal.
 
 ### v0.8.0
