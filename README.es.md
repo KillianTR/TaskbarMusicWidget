@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.8.4-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.5-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -72,6 +72,13 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.8.5
+- **Hotfix de Desplazamiento y Estabilidad del Marquee:** Resolución del problema por el cual títulos largos de pistas o vídeos (ej. vídeos de YouTube como *"Ser Parte de Tantos Proyectos...¿Merece La Pena?"* o canciones en Spotify) se quedaban estáticos o cortados en el límite del recuadro.
+- **Desacoplamiento de Clave de Caché:** La clave de caché del estado de animación se desacopla del ancho dinámico del contenedor, impidiendo que eventos SMTC recurrentes reinicien innecesariamente la animación a cero.
+- **Persistencia de Animación en el Flyout:** Se mantiene el ciclo de animación activo en segundo plano durante los ciclos de apertura/cierre del flyout, garantizando que el texto ya esté en movimiento al desplegar la tarjeta sin esperas congeladas.
+- **Ritmo Reactivo y Margen de Cola de 40px:** Reducción de la pausa inicial de 2.0s a 0.8s con velocidad uniforme de 28 px/s y margen de holgura de +40px, garantizando que el 100% de caracteres, puntuación y paréntesis se lean completos.
+- **Sincronización de Binarios y Acceso Directo:** Homogeneización de ejecutables publicados y del acceso directo de Inicio.
 
 ### v0.8.4
 - **Calibración de Espaciado del Flyout estilo Windows 11 (Hotfix):** Se ajusta la posición vertical de la tarjeta flotante para dejar un espacio libre de **12px** respecto al borde superior de la barra de tareas, emulando con exactitud la elevación del Centro de Notificaciones y Calendario nativo de Windows 11.

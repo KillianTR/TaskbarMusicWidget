@@ -1233,7 +1233,9 @@ namespace TaskbarMusicWidget
                 tb.Text == I18n.PlayerInactive || 
                 tb.Text == I18n.Waiting ||
                 tb.Text == "Sin música" || 
-                tb.Text == "No music playing")
+                tb.Text == "No music playing" ||
+                tb.Text == "Esperando..." ||
+                tb.Text == "Waiting...")
             {
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
                 transform.X = 0;
@@ -1241,7 +1243,7 @@ namespace TaskbarMusicWidget
                 return;
             }
 
-            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 105;
+            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 116;
 
             // Medir el ancho real del texto usando el mayor entre DesiredSize y FormattedText
             tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -1249,10 +1251,10 @@ namespace TaskbarMusicWidget
 
             if (textWidth > containerWidth + 4)
             {
-                string cacheKey = $"{tb.Text}|{containerWidth:F0}";
+                string cacheKey = tb.Text;
                 if (tb.Tag as string == cacheKey && transform.HasAnimatedProperties)
                 {
-                    // La animación ya está activa para este texto y tamaño; no reiniciar para no interrumpir el desplazamiento
+                    // La animación ya está activa para este texto; no reiniciar para no interrumpir el desplazamiento
                     return;
                 }
 
@@ -1260,12 +1262,13 @@ namespace TaskbarMusicWidget
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
                 transform.X = 0;
 
-                // Margen generoso de 35px para garantizar que se lean hasta los últimos caracteres y paréntesis sin cortar
-                double scrollDistance = -(textWidth - containerWidth + 35);
-                double scrollTimeSec = Math.Max(2.5, Math.Abs(scrollDistance) / 22.0);
-                double pauseStart = 2.0; // 2 segundos al inicio
-                double pauseEnd = 2.0;   // 2 segundos en el final para leer cómodamente
-                double pauseReturn = 1.0;
+                // Margen generoso de 40px para garantizar que se lean hasta los últimos caracteres y paréntesis sin cortar
+                double scrollDistance = -(textWidth - containerWidth + 40);
+                double speed = 28.0; // Píxeles por segundo para lectura suave y fluida
+                double scrollTimeSec = Math.Max(2.0, Math.Abs(scrollDistance) / speed);
+                double pauseStart = 0.8; // Pausa inicial reactiva para que el usuario aprecie el movimiento casi de inmediato
+                double pauseEnd = 1.5;   // Pausa en el extremo para leer el final del título
+                double pauseReturn = 0.6; // Pausa breve de regreso
 
                 TimeSpan t0 = TimeSpan.Zero;
                 TimeSpan t1 = TimeSpan.FromSeconds(pauseStart);
@@ -1299,17 +1302,33 @@ namespace TaskbarMusicWidget
         public static double MedirAnchoTexto(TextBlock tb)
         {
             if (string.IsNullOrEmpty(tb.Text)) return 0;
-            var typeface = new Typeface(tb.FontFamily, tb.FontStyle, tb.FontWeight, tb.FontStretch);
-            var dpi = VisualTreeHelper.GetDpi(tb);
-            var ft = new FormattedText(
-                tb.Text,
-                CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                typeface,
-                tb.FontSize,
-                tb.Foreground,
-                dpi.PixelsPerDip);
-            return ft.WidthIncludingTrailingWhitespace;
+            try
+            {
+                var typeface = new Typeface(tb.FontFamily, tb.FontStyle, tb.FontWeight, tb.FontStretch);
+                double pixelsPerDip = 1.0;
+                try
+                {
+                    pixelsPerDip = VisualTreeHelper.GetDpi(tb).PixelsPerDip;
+                }
+                catch
+                {
+                    pixelsPerDip = 1.0;
+                }
+
+                var ft = new FormattedText(
+                    tb.Text,
+                    CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    typeface,
+                    tb.FontSize,
+                    tb.Foreground ?? Brushes.White,
+                    pixelsPerDip);
+                return ft.WidthIncludingTrailingWhitespace;
+            }
+            catch
+            {
+                return tb.DesiredSize.Width;
+            }
         }
 
         private void BtnPlayPause_Click(object sender, RoutedEventArgs e) => EjecutarPlayPausa();
