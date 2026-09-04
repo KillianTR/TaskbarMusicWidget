@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.8.4-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.5-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -72,6 +72,13 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.8.5
+- **Marquee Title Scrolling & Stability Hotfix:** Resolved an issue where long track and video titles (e.g., YouTube videos like *"Ser Parte de Tantos Proyectos...¿Merece La Pena?"* or featured Spotify tracks) stalled or appeared truncated at container boundaries.
+- **Cache Key Decoupling:** Decoupled animation tracking from volatile layout container widths, preventing recurring SMTC playback events from resetting running animations back to zero.
+- **Persistent Flyout Animation:** Maintained background animation state across flyout hover cycles, ensuring text is immediately in motion without freezing upon card reveal.
+- **Responsive Pacing & 40px Tail Clearance:** Reduced initial pause from 2.0s to 0.8s with a smooth 28 px/s scroll and +40px trailing margin, ensuring 100% of characters, punctuation, and parentheses are displayed without cut-offs.
+- **Binary & Path Synchronization:** Ensured build and single-file publish targets are fully synchronized across `win-x64` and Startup shortcuts.
 
 ### v0.8.4
 - **Windows 11 Flyout Spacing Calibration (Hotfix):** Adjusted the vertical position of the flyout card to maintain a **12px** gap above the taskbar, faithfully mirroring the native Windows 11 Notification Center and Calendar flyouts.

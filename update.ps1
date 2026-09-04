@@ -18,7 +18,21 @@ if ($LASTEXITCODE -ne 0) {
 $exePath = Join-Path $projectDir "bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\TaskbarMusicWidget.exe"
 $workDir = [System.IO.Path]::GetDirectoryName($exePath)
 
-# Intentar actualizar tambin en Program Files si hay permisos suficientes
+# Sincronizar también la copia sin publish en win-x64 por si se ejecuta directamente
+try {
+    $nonPublishExe = Join-Path $projectDir "bin\Release\net8.0-windows10.0.19041.0\win-x64\TaskbarMusicWidget.exe"
+    if (Test-Path $nonPublishExe) {
+        Copy-Item -Path $exePath -Destination $nonPublishExe -Force -ErrorAction SilentlyContinue
+    }
+} catch {}
+
+# Limpiar logs temporales si existen
+try {
+    $logFile = Join-Path $projectDir "marquee.log"
+    if (Test-Path $logFile) { Remove-Item $logFile -Force -ErrorAction SilentlyContinue }
+} catch {}
+
+# Intentar actualizar también en Program Files si hay permisos suficientes
 try {
     $progFilesDir = "C:\Program Files\TaskbarMusicWidget"
     if (Test-Path $progFilesDir) {
@@ -26,7 +40,7 @@ try {
         Write-Host "Copia en Program Files actualizada correctamente." -ForegroundColor Green
     }
 } catch {
-    # Si no es administrador no es crtico, el acceso directo apunta a la versin de publicacin local
+    # Si no es administrador no es crítico, el acceso directo apunta a la versión de publicación local
 }
 
 # Actualizar el acceso directo en Inicio (Startup)
