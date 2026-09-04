@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.8.5-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.6-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -72,6 +72,11 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.8.6
+- **Viewport Desacoplado con Canvas (Hotfix Crítico):** Resolución definitiva del recorte interno del motor de maquetación de WPF (`GetLayoutClip`), el cual truncaba todos los caracteres y glifos que sobrepasaran los 116px (en barra) y 238px (en flyout) al estar alojados directamente en celdas fijas de tipo `Grid`.
+- **Renderizado Íntegro de Títulos Extensos:** Al envolver los `TextBlock` en un `Canvas` sin restricciones de slot de maquetación, todo el texto (por largo que sea el título del vídeo de YouTube o pista) se renderiza al 100% de su anchura real y se visualiza completo de principio a fin al desplazarse.
+- **Tooltips Nativos Completos:** Al posar el ratón sobre los textos en el widget de la barra o en la tarjeta flotante, se muestra un tooltip nativo con el título y artista completos.
 
 ### v0.8.5
 - **Hotfix de Desplazamiento y Estabilidad del Marquee:** Resolución del problema por el cual títulos largos de pistas o vídeos (ej. vídeos de YouTube como *"Ser Parte de Tantos Proyectos...¿Merece La Pena?"* o canciones en Spotify) se quedaban estáticos o cortados en el límite del recuadro.

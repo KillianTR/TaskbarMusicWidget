@@ -653,6 +653,8 @@ namespace TaskbarMusicWidget
 
                     TxtTitle.Text = _currentTitle;
                     TxtArtist.Text = _currentArtist;
+                    TxtTitle.ToolTip = _currentTitle;
+                    TxtArtist.ToolTip = _currentArtist;
 
                     if (props.Thumbnail != null)
                     {

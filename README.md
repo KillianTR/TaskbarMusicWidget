@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.8.5-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.6-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -72,6 +72,11 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.8.6
+- **Unconstrained Canvas Marquee Viewport (Critical Hotfix):** Resolved the underlying WPF layout engine clipping bug where `TextBlock` elements placed directly inside fixed-width `Grid` cells had an internal `GetLayoutClip` applied to them, truncating all characters beyond 116px (taskbar) and 238px (flyout) during translation.
+- **Full-Width Glyphs Rendering:** Wrapped marquee `TextBlock` elements inside an unconstrained layout `Canvas`, allowing all glyphs (no matter how long the YouTube video or track title) to render completely without layout clipping.
+- **Native Tooltip Integration:** Added full title and artist tooltips on hover over track labels in both the taskbar and flyout windows.
 
 ### v0.8.5
 - **Marquee Title Scrolling & Stability Hotfix:** Resolved an issue where long track and video titles (e.g., YouTube videos like *"Ser Parte de Tantos Proyectos...¿Merece La Pena?"* or featured Spotify tracks) stalled or appeared truncated at container boundaries.
