@@ -1,6 +1,6 @@
 # 🎵 Taskbar Music Widget (Windows 11 / 10)
 
-![Version](https://img.shields.io/badge/version-v0.8.2-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.3-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -68,6 +68,11 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.8.3
+- **Corrección de Recorte y Reinicio del Marquee (Hotfix):** Se soluciona el problema por el cual el título de canciones largas se interrumpía prematuramente (ej. deteniéndose en *"bert mccrac"* en el flyout o *"yungb"* en el widget de la barra).
+- **Protección contra Reinicios Innecesarios:** Se implementa un sistema de caché de estado (`cacheKey`) que evita que eventos periódicos o secundarios de Windows SMTC cancelen la animación en curso si la pista no ha cambiado.
+- **Distancia de Desplazamiento Completa:** Incorporación de un margen dinámico generoso (+35px) y medición compuesta (`DesiredSize` + `FormattedText`) para garantizar que el 100% de títulos y artistas largos (incluyendo paréntesis y coletillas como `feat.`) se muestren por completo con holgura.
 
 ### v0.8.2
 - **Ajuste de Proporción en Barra (Hotfix):** Reducción de la anchura total a 230px, eliminando el espacio excesivo entre el texto y los botones para un diseño compacto y armonioso.
