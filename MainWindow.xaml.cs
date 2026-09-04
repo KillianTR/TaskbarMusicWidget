@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -1205,31 +1207,68 @@ namespace TaskbarMusicWidget
         {
             Dispatcher.InvokeAsync(() =>
             {
-                TitleTransform.BeginAnimation(TranslateTransform.XProperty, null);
-                TitleTransform.X = 0;
-
-                TxtTitle.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                double textWidth = TxtTitle.DesiredSize.Width;
-                double containerWidth = TitleContainer.ActualWidth > 0 ? TitleContainer.ActualWidth : 110;
-
-                if (textWidth > containerWidth + 6)
-                {
-                    double scrollDistance = -(textWidth - containerWidth + 10);
-                    double durationSec = Math.Max(2.5, Math.Abs(scrollDistance) / 20.0);
-
-                    var anim = new DoubleAnimation
-                    {
-                        From = 0,
-                        To = scrollDistance,
-                        Duration = TimeSpan.FromSeconds(durationSec),
-                        BeginTime = TimeSpan.FromSeconds(1.5),
-                        AutoReverse = true,
-                        RepeatBehavior = RepeatBehavior.Forever
-                    };
-
-                    TitleTransform.BeginAnimation(TranslateTransform.XProperty, anim);
-                }
+                AplicarMarquee(TxtTitle, TitleContainer, TitleTransform);
+                AplicarMarquee(TxtArtist, ArtistContainer, ArtistTransform);
             }, DispatcherPriority.Loaded);
+        }
+
+        private static void AplicarMarquee(TextBlock tb, FrameworkElement container, TranslateTransform transform)
+        {
+            transform.BeginAnimation(TranslateTransform.XProperty, null);
+            transform.X = 0;
+
+            if (string.IsNullOrWhiteSpace(tb.Text) || tb.Text == "Sin música" || tb.Text == "Reproductor inactivo" || tb.Text == "Esperando...")
+                return;
+
+            double textWidth = MedirAnchoTexto(tb);
+            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 125;
+
+            if (textWidth > containerWidth + 4)
+            {
+                // Margen de 16px para garantizar que se lean hasta los últimos caracteres y paréntesis
+                double scrollDistance = -(textWidth - containerWidth + 16);
+                double scrollTimeSec = Math.Max(2.5, Math.Abs(scrollDistance) / 22.0);
+                double pauseStart = 2.0; // 2 segundos al inicio
+                double pauseEnd = 2.0;   // 2 segundos en el final para leer cómodamente
+                double pauseReturn = 1.0;
+
+                TimeSpan t0 = TimeSpan.Zero;
+                TimeSpan t1 = TimeSpan.FromSeconds(pauseStart);
+                TimeSpan t2 = t1 + TimeSpan.FromSeconds(scrollTimeSec);
+                TimeSpan t3 = t2 + TimeSpan.FromSeconds(pauseEnd);
+                TimeSpan t4 = t3 + TimeSpan.FromSeconds(scrollTimeSec);
+                TimeSpan t5 = t4 + TimeSpan.FromSeconds(pauseReturn);
+
+                var anim = new DoubleAnimationUsingKeyFrames
+                {
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t0)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t1)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t2)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t3)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t4)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t5)));
+
+                transform.BeginAnimation(TranslateTransform.XProperty, anim);
+            }
+        }
+
+        public static double MedirAnchoTexto(TextBlock tb)
+        {
+            if (string.IsNullOrEmpty(tb.Text)) return 0;
+            var typeface = new Typeface(tb.FontFamily, tb.FontStyle, tb.FontWeight, tb.FontStretch);
+            var dpi = VisualTreeHelper.GetDpi(tb);
+            var ft = new FormattedText(
+                tb.Text,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                tb.FontSize,
+                tb.Foreground,
+                dpi.PixelsPerDip);
+            return ft.WidthIncludingTrailingWhitespace;
         }
 
         private void BtnPlayPause_Click(object sender, RoutedEventArgs e) => EjecutarPlayPausa();
