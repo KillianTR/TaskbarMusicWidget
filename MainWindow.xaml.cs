@@ -1240,7 +1240,7 @@ namespace TaskbarMusicWidget
                 return;
 
             double textWidth = MedirAnchoTexto(tb);
-            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 125;
+            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 110;
 
             if (textWidth > containerWidth + 4)
             {
