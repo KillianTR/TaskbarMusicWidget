@@ -7,6 +7,10 @@
 
 Un widget nativo, ligero y elegante para la barra de tareas de Windows que proporciona controles multimedia integrados en tiempo real con una interfaz flotante (*Flyout*) inspirada en el diseño Fluent y Spotify.
 
+<p align="center">
+  <img src="assets/demo.gif" alt="Taskbar Music Widget Demo" width="720" style="border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);" />
+</p>
+
 ---
 
 ## ✨ Características Principales
