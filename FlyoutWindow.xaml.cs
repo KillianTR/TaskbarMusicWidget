@@ -1,10 +1,13 @@
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using Windows.Media;
 
 namespace TaskbarMusicWidget
@@ -48,6 +51,7 @@ namespace TaskbarMusicWidget
             this.Left = left;
             this.Top = top;
             this.Visibility = Visibility.Visible;
+            ActualizarMarqueeFlyout();
 
             var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180));
             this.BeginAnimation(OpacityProperty, fadeIn);
@@ -80,6 +84,8 @@ namespace TaskbarMusicWidget
                 FlyoutPlayPausePath.Data = Geometry.Parse(isPlaying ? PausePathData : PlayPathData);
                 FlyoutPlayPausePath.Margin = isPlaying ? new Thickness(0) : new Thickness(1.5, 0, 0, 0);
             }
+
+            ActualizarMarqueeFlyout();
         }
 
         public void UpdateTimeline(TimeSpan position, TimeSpan duration)
@@ -237,5 +243,75 @@ namespace TaskbarMusicWidget
         {
             _mainWindow.NotificarMouseEnFlyout(false);
         }
+
+        #region Animación de Marquee Suave para Título y Artista
+        public void ActualizarMarqueeFlyout()
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                AplicarMarquee(FlyoutTitle, FlyoutTitleContainer, FlyoutTitleTransform);
+                AplicarMarquee(FlyoutArtist, FlyoutArtistContainer, FlyoutArtistTransform);
+            }, DispatcherPriority.Loaded);
+        }
+
+        private static void AplicarMarquee(TextBlock tb, FrameworkElement container, TranslateTransform transform)
+        {
+            transform.BeginAnimation(TranslateTransform.XProperty, null);
+            transform.X = 0;
+
+            if (string.IsNullOrWhiteSpace(tb.Text) || tb.Text == "Sin música" || tb.Text == "Reproductor inactivo")
+                return;
+
+            double textWidth = MedirAnchoTexto(tb);
+            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 250;
+
+            if (textWidth > containerWidth + 4)
+            {
+                // Margen de 16px para garantizar que se lean hasta los últimos caracteres y paréntesis
+                double scrollDistance = -(textWidth - containerWidth + 16);
+                double scrollTimeSec = Math.Max(2.5, Math.Abs(scrollDistance) / 22.0);
+                double pauseStart = 2.0; // 2 segundos al inicio
+                double pauseEnd = 2.0;   // 2 segundos en el final para leer cómodamente
+                double pauseReturn = 1.0;
+
+                TimeSpan t0 = TimeSpan.Zero;
+                TimeSpan t1 = TimeSpan.FromSeconds(pauseStart);
+                TimeSpan t2 = t1 + TimeSpan.FromSeconds(scrollTimeSec);
+                TimeSpan t3 = t2 + TimeSpan.FromSeconds(pauseEnd);
+                TimeSpan t4 = t3 + TimeSpan.FromSeconds(scrollTimeSec);
+                TimeSpan t5 = t4 + TimeSpan.FromSeconds(pauseReturn);
+
+                var anim = new DoubleAnimationUsingKeyFrames
+                {
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t0)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t1)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t2)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t3)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t4)));
+                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t5)));
+
+                transform.BeginAnimation(TranslateTransform.XProperty, anim);
+            }
+        }
+
+        private static double MedirAnchoTexto(TextBlock tb)
+        {
+            if (string.IsNullOrEmpty(tb.Text)) return 0;
+            var typeface = new Typeface(tb.FontFamily, tb.FontStyle, tb.FontWeight, tb.FontStretch);
+            var dpi = VisualTreeHelper.GetDpi(tb);
+            var ft = new FormattedText(
+                tb.Text,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                tb.FontSize,
+                tb.Foreground,
+                dpi.PixelsPerDip);
+            return ft.WidthIncludingTrailingWhitespace;
+        }
+        #endregion
     }
 }

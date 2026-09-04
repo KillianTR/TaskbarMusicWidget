@@ -1,5 +1,10 @@
 # 🎵 Taskbar Music Widget (Windows 11 / 10)
 
+![Version](https://img.shields.io/badge/version-v0.8.0-1ED760?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
+![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+
 Un widget nativo, ligero y elegante para la barra de tareas de Windows que proporciona controles multimedia integrados en tiempo real con una interfaz flotante (*Flyout*) inspirada en el diseño Fluent y Spotify.
 
 ---
@@ -9,13 +14,16 @@ Un widget nativo, ligero y elegante para la barra de tareas de Windows que propo
 - **Integración Fluida con la Barra de Tareas:** Se acopla de manera limpia al espacio de la bandeja del sistema sin marcos molestos ni fondos desentonados.
 - **Detección Universal de Medios (GSMTC):** Compatible automáticamente con Spotify, YouTube, Twitch, Netflix, Soundcloud, VLC, Chrome, Opera, Edge, Brave y cualquier reproductor compatible con Windows Media.
 - **Tarjeta Flotante Expandible (*Flyout*):** Al pasar el ratón sobre el widget, se despliega una tarjeta flotante interactiva con carátula en alta resolución, título, artista, barra de progreso con desplazamiento manual (*scrubbing*) y controles completos.
+- **Animación Cinemática de Texto (*Marquee con KeyFrames*):**
+  - Implementado tanto en el widget de la barra como en la tarjeta flotante (*Flyout*).
+  - Medición tipográfica exacta subpíxel mediante `FormattedText` para evitar cualquier recorte accidental.
+  - Pausas estratégicas de 2 segundos al inicio y al final de cada ciclo, permitiendo leer títulos y nombres de artistas largos con total comodidad y sin prisas.
 - **Aleatorio Inteligente (*Smart Shuffle*) de Spotify:** Integración bidireccional con Spotify mediante **Windows UI Automation** que detecta y conmuta entre *Desactivado*, *Aleatorio normal* y *Smart Shuffle* con su destello característico (`✦`).
 - **Control de Volumen con Rueda del Ratón:** Ajuste directo del volumen maestro del sistema en saltos exactos del **5%** mediante interfaces COM de bajo nivel (**CoreAudio IAudioEndpointVolume**).
 - **Enfoque Inteligente y Conmutación de Pestañas:**
   - Al hacer clic en la carátula o título, activa la aplicación correspondiente **sin alterar su tamaño ni desmaximizarla** (incluso en segundas pantallas).
   - En navegadores (Opera, Chrome, Edge), localiza la pestaña exacta que está reproduciendo contenido (por ejemplo, YouTube) y cambia a ella automáticamente mediante UI Automation.
 - **Ocultación Automática en Pantalla Completa:** Monitoreo reactivo para ocultarse instantáneamente al jugar a pantalla completa, ver vídeos sin bordes o cuando la barra de tareas de Windows se auto-oculta.
-- **Texto con Desplazamiento Suave (*Marquee*):** Los títulos y artistas largos se desplazan suavemente de lado a lado (*ping-pong*) para que nunca queden cortados.
 - **Optimización Extrema de Recursos:** Consumo prácticamente nulo de CPU (< 0.1%) y uso reducido de memoria RAM (~30 MB).
 
 ---
@@ -54,7 +62,18 @@ El ejecutable listo para usar se generará en:
 
 ---
 
+## 📌 Historial de Versiones (Changelog)
+
+### v0.8.0
+- **Marquee Cinemático con KeyFrames:** Reemplazo de la animación básica por `DoubleAnimationUsingKeyFrames` con pausas de 2 segundos en ambos extremos para lectura completa de títulos largos.
+- **Soporte de Marquee en Flyout:** La tarjeta flotante ahora también incluye scroll dinámico para títulos y artistas que sobrepasen el ancho de la tarjeta.
+- **Medición Tipográfica Exacta:** Uso de `FormattedText` y DPI del sistema para calcular el ancho real de fuentes en lugar de depender de pases de layout diferidos.
+- **Ampliación de Contenedores:** Aumento de anchura a 280px en el widget de la barra y a 340px en la tarjeta flotante para mayor visibilidad a simple vista.
+- **Sincronización Bidireccional de Smart Shuffle:** Soporte completo para el ciclo de 3 estados de Spotify con icono de destello (`✦`).
+- **Preservación de Ventanas Maximizadas:** Eliminación de llamadas DWM disruptivas al enfocar reproductores en monitores secundarios.
+
+---
+
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Siéntete libre de utilizarlo, modificarlo y distribuirlo.
-
