@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.8.6-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.8.7-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -72,6 +72,11 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.8.7
+- **YouTube Shorts Channel Logo Replacement (Hotfix / Feature):** Automatically detects when media playback originates from a vertical YouTube Short (via 9:16 aspect ratio detection `PixelHeight > PixelWidth` or `#shorts` title tags) and replaces the split/cropped video thumbnail with the official high-resolution channel logo/avatar.
+- **Dual-Tier Avatar Caching (RAM + Disk):** Implemented an instant memory cache (`ConcurrentDictionary`) coupled with persistent disk storage (`%LocalAppData%\TaskbarMusicWidget\Avatars`), enabling subsequent Shorts from the same creator to load with zero latency (0ms).
+- **Selective Replacement:** Preserves original 16:9 widescreen thumbnails for standard YouTube videos, 1:1 album art for Spotify, and dedicated posters for Netflix.
 
 ### v0.8.6
 - **Unconstrained Canvas Marquee Viewport (Critical Hotfix):** Resolved the underlying WPF layout engine clipping bug where `TextBlock` elements placed directly inside fixed-width `Grid` cells had an internal `GetLayoutClip` applied to them, truncating all characters beyond 116px (taskbar) and 238px (flyout) during translation.
