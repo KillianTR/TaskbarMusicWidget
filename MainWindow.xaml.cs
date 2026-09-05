@@ -15,7 +15,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
+using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Windows.Automation;
 using Windows.Media;
 using Windows.Media.Control;
@@ -41,6 +44,22 @@ namespace TaskbarMusicWidget
 
         private const string PlayPathData = "M 3.5,2 L 12,7 L 3.5,12 Z";
         private const string PausePathData = "M 3,2 L 5.5,2 L 5.5,12 L 3,12 Z M 8.5,2 L 11,2 L 11,12 L 8.5,12 Z";
+
+        private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+        private static readonly ConcurrentDictionary<string, ImageSource> _channelAvatarCache = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly string _avatarCacheDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TaskbarMusicWidget", "Avatars");
+
+        static MainWindow()
+        {
+            try
+            {
+                _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                _httpClient.DefaultRequestHeaders.Add("Accept-Language", "es-ES,es;q=0.9,en;q=0.8");
+            }
+            catch { }
+        }
 
         #region Win32 API
         [DllImport("user32.dll", SetLastError = true)]
@@ -624,6 +643,190 @@ namespace TaskbarMusicWidget
             return I18n.PlayingFallback;
         }
 
+        #region Detección y Carátulas para YouTube Shorts
+        private static bool EsNavegador(string? appModelId)
+        {
+            if (string.IsNullOrEmpty(appModelId)) return false;
+            return appModelId.Contains("Opera", StringComparison.OrdinalIgnoreCase) ||
+                   appModelId.Contains("Chrome", StringComparison.OrdinalIgnoreCase) ||
+                   appModelId.Contains("MSEdge", StringComparison.OrdinalIgnoreCase) ||
+                   appModelId.Contains("Edge", StringComparison.OrdinalIgnoreCase) ||
+                   appModelId.Contains("Brave", StringComparison.OrdinalIgnoreCase) ||
+                   appModelId.Contains("Vivaldi", StringComparison.OrdinalIgnoreCase) ||
+                   appModelId.Contains("Firefox", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool EsYouTubeShort(string title, int pixelWidth, int pixelHeight, bool isBrowser)
+        {
+            if (!isBrowser) return false;
+
+            // 1. Detección por título explícito (#shorts o #short)
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                if (title.Contains("#shorts", StringComparison.OrdinalIgnoreCase) ||
+                    title.Contains("#short", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            // 2. Detección por relación de aspecto vertical (vídeos 9:16 típicos de Shorts)
+            // Los vídeos horizontales de YouTube son 16:9 (pixelWidth > pixelHeight * 1.5).
+            // En Shorts, la altura es significativamente mayor que el ancho.
+            if (pixelHeight > 0 && pixelWidth > 0 && pixelHeight > pixelWidth)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryObtenerLogoCanalYouTubeEnCache(string channelName, out ImageSource? logo)
+        {
+            logo = null;
+            if (string.IsNullOrWhiteSpace(channelName)) return false;
+
+            channelName = channelName.Trim();
+
+            // 1. Comprobar caché en memoria
+            if (_channelAvatarCache.TryGetValue(channelName, out logo) && logo != null)
+            {
+                return true;
+            }
+
+            // 2. Comprobar caché persistente en disco
+            try
+            {
+                string safeFileName = Regex.Replace(channelName, @"[^\w\-\.]", "_") + ".jpg";
+                string cachePath = Path.Combine(_avatarCacheDir, safeFileName);
+                if (File.Exists(cachePath))
+                {
+                    byte[] fileBytes = File.ReadAllBytes(cachePath);
+                    if (fileBytes != null && fileBytes.Length > 0)
+                    {
+                        logo = CrearBitmapDesdeBytes(fileBytes);
+                        if (logo != null)
+                        {
+                            _channelAvatarCache[channelName] = logo;
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return false;
+        }
+
+        private static BitmapImage? CrearBitmapDesdeBytes(byte[] bytes)
+        {
+            try
+            {
+                using var ms = new MemoryStream(bytes);
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.StreamSource = ms;
+                bmp.EndInit();
+                bmp.Freeze();
+                return bmp;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static async Task<ImageSource?> ObtenerLogoCanalYouTubeAsync(string channelName)
+        {
+            if (string.IsNullOrWhiteSpace(channelName)) return null;
+
+            channelName = channelName.Trim();
+
+            if (TryObtenerLogoCanalYouTubeEnCache(channelName, out var cachedLogo) && cachedLogo != null)
+            {
+                return cachedLogo;
+            }
+
+            try
+            {
+                string searchUrl = $"https://www.youtube.com/results?search_query={Uri.EscapeDataString(channelName)}";
+                var response = await _httpClient.GetAsync(searchUrl);
+                if (!response.IsSuccessStatusCode) return null;
+
+                string html = await response.Content.ReadAsStringAsync();
+
+                // Expresión regular para localizar el avatar oficial del canal (yt3.ggpht.com o yt3.googleusercontent.com)
+                var match = Regex.Match(html, @"https://yt3\.(?:googleusercontent|ggpht)\.com/(?:ytc/)?[a-zA-Z0-9_\-=]+");
+                if (match.Success)
+                {
+                    string avatarUrl = match.Value;
+                    if (avatarUrl.Contains("=s"))
+                    {
+                        avatarUrl = Regex.Replace(avatarUrl, @"=s\d+.*", "=s256-c-k-c0x00ffffff-no-rj");
+                    }
+                    else
+                    {
+                        avatarUrl += "=s256-c-k-c0x00ffffff-no-rj";
+                    }
+
+                    byte[] imgBytes = await _httpClient.GetByteArrayAsync(avatarUrl);
+                    if (imgBytes != null && imgBytes.Length > 0)
+                    {
+                        var bmp = CrearBitmapDesdeBytes(imgBytes);
+                        if (bmp != null)
+                        {
+                            _channelAvatarCache[channelName] = bmp;
+
+                            // Guardar en caché de disco de forma asíncrona
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    if (!Directory.Exists(_avatarCacheDir))
+                                    {
+                                        Directory.CreateDirectory(_avatarCacheDir);
+                                    }
+                                    string safeFileName = Regex.Replace(channelName, @"[^\w\-\.]", "_") + ".jpg";
+                                    string cachePath = Path.Combine(_avatarCacheDir, safeFileName);
+                                    await File.WriteAllBytesAsync(cachePath, imgBytes);
+                                }
+                                catch { }
+                            });
+
+                            return bmp;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private async Task CargarLogoCanalAsync(string channelName, string expectedTitle)
+        {
+            try
+            {
+                var logo = await ObtenerLogoCanalYouTubeAsync(channelName);
+                if (logo != null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        // Asegurarse de que el usuario sigue reproduciendo el mismo canal y título
+                        if (_currentArtist == channelName && _currentTitle == expectedTitle)
+                        {
+                            _currentCover = logo;
+                            AlbumArt.Source = logo;
+                            _flyoutWindow?.UpdateTrackInfo(_currentCover, _currentTitle, _currentArtist, _isPlaying);
+                        }
+                    });
+                }
+            }
+            catch { }
+        }
+        #endregion
+
         private async void RefrescarDatos()
         {
             if (_currentSession == null) return;
@@ -656,16 +859,45 @@ namespace TaskbarMusicWidget
                     TxtTitle.ToolTip = _currentTitle;
                     TxtArtist.ToolTip = _currentArtist;
 
+                    BitmapImage? bmp = null;
                     if (props.Thumbnail != null)
                     {
-                        using IRandomAccessStreamWithContentType stream = await props.Thumbnail.OpenReadAsync();
-                        using Stream netStream = stream.AsStreamForRead();
-                        var bmp = new BitmapImage();
-                        bmp.BeginInit();
-                        bmp.CacheOption = BitmapCacheOption.OnLoad;
-                        bmp.StreamSource = netStream;
-                        bmp.EndInit();
-                        bmp.Freeze();
+                        try
+                        {
+                            using IRandomAccessStreamWithContentType stream = await props.Thumbnail.OpenReadAsync();
+                            using Stream netStream = stream.AsStreamForRead();
+                            var tempBmp = new BitmapImage();
+                            tempBmp.BeginInit();
+                            tempBmp.CacheOption = BitmapCacheOption.OnLoad;
+                            tempBmp.StreamSource = netStream;
+                            tempBmp.EndInit();
+                            tempBmp.Freeze();
+                            bmp = tempBmp;
+                        }
+                        catch { }
+                    }
+
+                    bool isBrowser = EsNavegador(_currentSession.SourceAppUserModelId);
+                    bool isShort = EsYouTubeShort(_currentTitle, bmp?.PixelWidth ?? 0, bmp?.PixelHeight ?? 0, isBrowser);
+
+                    if (isShort && !string.IsNullOrWhiteSpace(_currentArtist))
+                    {
+                        string canal = _currentArtist;
+                        if (TryObtenerLogoCanalYouTubeEnCache(canal, out var logoCached) && logoCached != null)
+                        {
+                            _currentCover = logoCached;
+                            AlbumArt.Source = logoCached;
+                        }
+                        else
+                        {
+                            // Mostramos el thumbnail temporalmente mientras se descarga el avatar en segundo plano
+                            _currentCover = bmp;
+                            AlbumArt.Source = bmp;
+                            _ = CargarLogoCanalAsync(canal, _currentTitle);
+                        }
+                    }
+                    else if (bmp != null)
+                    {
                         _currentCover = bmp;
                         AlbumArt.Source = bmp;
                     }

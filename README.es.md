@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.8.6-1ED760?style=flat-square)
+![Versión](https://img.shields.io/badge/versión-v0.8.7-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -72,6 +72,11 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.8.7
+- **Sustitución de Carátula en YouTube Shorts por el Logo del Canal (Hotfix / Mejora):** Detección inteligente de YouTube Shorts reproducidos en navegadores (mediante relación de aspecto vertical 9:16 `PixelHeight > PixelWidth` o etiquetas `#shorts`), sustituyendo la miniatura de vídeo cortada/dividida por el logo o avatar oficial del canal en alta resolución (256x256).
+- **Caché de Avatares en Doble Nivel (Memoria + Disco):** Sistema de almacenamiento en memoria RAM y persistente en disco (`%LocalAppData%\TaskbarMusicWidget\Avatars`), logrando que reproducciones sucesivas de Shorts del mismo canal muestren el logo al instante (0 ms) sin peticiones de red redundantes.
+- **Preservación Selectiva:** Mantiene intactas las miniaturas 16:9 de vídeos estándar de YouTube, las portadas cuadradas 1:1 de Spotify y los pósteres de Netflix.
 
 ### v0.8.6
 - **Viewport Desacoplado con Canvas (Hotfix Crítico):** Resolución definitiva del recorte interno del motor de maquetación de WPF (`GetLayoutClip`), el cual truncaba todos los caracteres y glifos que sobrepasaran los 116px (en barra) y 238px (en flyout) al estar alojados directamente en celdas fijas de tipo `Grid`.
