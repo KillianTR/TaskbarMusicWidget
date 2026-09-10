@@ -59,6 +59,6 @@ try {
 
 # Iniciar el widget actualizado
 Write-Host "Iniciando TaskbarMusicWidget..." -ForegroundColor Green
-Start-Process -FilePath $exePath -WorkingDirectory $workDir
+Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine = "`"$exePath`""; CurrentDirectory = $workDir} | Out-Null
 
 Write-Host "Widget actualizado y en ejecución con éxito!" -ForegroundColor Green
