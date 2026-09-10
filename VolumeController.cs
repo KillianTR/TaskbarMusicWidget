@@ -118,6 +118,70 @@ namespace TaskbarMusicWidget
             }
             return -1;
         }
+
+        public static bool EstablecerVolumen(float level)
+        {
+            level = Math.Clamp(level, 0.0f, 1.0f);
+            var epv = GetEndpointVolume();
+            if (epv != null)
+            {
+                try
+                {
+                    Guid emptyGuid = Guid.Empty;
+                    return epv.SetMasterVolumeLevelScalar(level, ref emptyGuid) == 0;
+                }
+                catch { }
+                finally
+                {
+                    Marshal.ReleaseComObject(epv);
+                }
+            }
+            return false;
+        }
+
+        public static bool AlternarSilencio()
+        {
+            var epv = GetEndpointVolume();
+            if (epv != null)
+            {
+                try
+                {
+                    if (epv.GetMute(out bool isMuted) == 0)
+                    {
+                        Guid emptyGuid = Guid.Empty;
+                        epv.SetMute(!isMuted, ref emptyGuid);
+                        return !isMuted;
+                    }
+                }
+                catch { }
+                finally
+                {
+                    Marshal.ReleaseComObject(epv);
+                }
+            }
+            return false;
+        }
+
+        public static bool EstaSilenciado()
+        {
+            var epv = GetEndpointVolume();
+            if (epv != null)
+            {
+                try
+                {
+                    if (epv.GetMute(out bool isMuted) == 0)
+                    {
+                        return isMuted;
+                    }
+                }
+                catch { }
+                finally
+                {
+                    Marshal.ReleaseComObject(epv);
+                }
+            }
+            return false;
+        }
     }
 }
 

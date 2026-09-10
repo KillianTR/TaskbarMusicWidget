@@ -33,5 +33,15 @@ namespace TaskbarMusicWidget
         public static string StartupError => IsSpanish ? "Error al iniciar" : "Startup error";
         public static string CheckPermissions => IsSpanish ? "Verifica permisos" : "Check permissions";
         public static string PlayingFallback => IsSpanish ? "Reproduciendo" : "Playing";
+
+        // Ajustes y barra de volumen
+        public static string SettingsTitle => IsSpanish ? "Configuración" : "Settings";
+        public static string ShowVolumeBarLabel => IsSpanish ? "Mostrar barra de volumen" : "Show volume bar";
+        public static string AudioOutputLabel => IsSpanish ? "Dispositivo de salida de audio" : "Audio output device";
+        public static string MonitorLabel => IsSpanish ? "Pantalla del widget" : "Widget display";
+        public static string MonitorPrimary => IsSpanish ? "Pantalla 1 (Principal)" : "Display 1 (Primary)";
+        public static string MonitorSecondary => IsSpanish ? "Pantalla 2 (Secundaria)" : "Display 2 (Secondary)";
+        public static string MonitorAuto => IsSpanish ? "Automático (Pantalla completa)" : "Automatic (Fullscreen)";
+        public static string BackTooltip => IsSpanish ? "Volver al reproductor" : "Back to player";
     }
 }
