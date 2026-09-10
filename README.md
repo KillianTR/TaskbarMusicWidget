@@ -22,13 +22,7 @@ A native, lightweight, and elegant Windows taskbar widget that delivers real-tim
 - **Seamless Taskbar Integration:** Docks cleanly into the system tray area with zero distracting frames or mismatched backgrounds.
 - **Universal Media Detection (GSMTC):** Automatically supports Spotify, YouTube, Twitch, Netflix, SoundCloud, VLC, Chrome, Opera, Edge, Brave, and any Windows Media-compatible player.
 - **Expandable Interactive Flyout Card:** Hovering over the widget displays an interactive floating card with high-resolution album art, track title, artist name, a full progress bar with manual scrubbing, and playback controls.
-- **Interactive Volume Bar & Percentage Display:** Optional Spotify-styled volume slider placed directly below the track timeline, featuring an instant mute/unmute button, drag slider, and live volume percentage (e.g., `45%`).
-- **Audio Output Device Switcher:** Easily switch between headphones, speakers, HDMI audio, and other connected audio endpoints directly from settings or the context menu using Windows CoreAudio `IPolicyConfig`.
-- **Multi-Monitor Relocation & Gaming Mode:**
-  - Intelligently detects full-screen games, full-screen video playback, or HDMI monitor inputs (e.g., PS5 on Monitor 1).
-  - Automatically relocates the widget to the secondary monitor's taskbar so you never lose control of your music.
-  - Choose between *Automatic*, *Display 1 (Primary)*, or *Display 2 (Secondary)*.
-- **Integrated Settings Panel:** Accessible via the gear icon (`⚙`) in the flyout header, allowing quick customization of volume bar visibility, target display, and audio output.
+- **Interactive Volume Bar & Percentage Display:** Spotify-styled volume slider placed directly below the track timeline, featuring an instant mute/unmute button, click-to-position & drag slider, live volume percentage (e.g., `45%`), plus mouse wheel control over the taskbar widget.
 - **Cinematic Text Marquee (KeyFrame Animation):**
   - Implemented in both the taskbar widget and the floating card (*Flyout*).
   - Subpixel typographical measurement via `FormattedText` and `DesiredSize` to eliminate premature truncation.

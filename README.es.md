@@ -22,13 +22,7 @@ Un widget nativo, ligero y elegante para la barra de tareas de Windows que propo
 - **Integración Fluida con la Barra de Tareas:** Se acopla de manera limpia al espacio de la bandeja del sistema sin marcos molestos ni fondos desentonados.
 - **Detección Universal de Medios (GSMTC):** Compatible automáticamente con Spotify, YouTube, Twitch, Netflix, Soundcloud, VLC, Chrome, Opera, Edge, Brave y cualquier reproductor compatible con Windows Media.
 - **Tarjeta Flotante Expandible (*Flyout*):** Al pasar el ratón sobre el widget, se despliega una tarjeta flotante interactiva con carátula en alta resolución, título, artista, barra de progreso con desplazamiento manual (*scrubbing*) y controles completos.
-- **Barra de Volumen Interactiva con Porcentaje Numérico:** Barra de volumen opcional estilo Spotify situada justo debajo del tiempo de la pista, con botón de silenciar/activar sonido, barra deslizable y número de porcentaje exacto en tiempo real (ej. `45%`).
-- **Conmutador de Dispositivo de Salida de Audio:** Cambia al instante entre auriculares, altavoces, audio HDMI y otros dispositivos conectados directamente desde la configuración o el menú contextual mediante CoreAudio `IPolicyConfig`.
-- **Reubicación Multi-Monitor y Modo Gaming:**
-  - Detección inteligente de juegos o vídeos en pantalla completa en el monitor principal o uso de entrada HDMI (como una PS5 en la Pantalla 1).
-  - El widget se traslada automáticamente a la barra de tareas del segundo monitor para no perder el control de la música.
-  - Selección de monitor configurable: *Automático*, *Pantalla 1 (Principal)* o *Pantalla 2 (Secundaria)*.
-- **Panel de Configuración Integrado en el Flyout:** Accesible pulsando el icono de engranaje (`⚙`) en la cabecera del cuadro flotante, permitiendo activar la barra de volumen, cambiar de pantalla y seleccionar dispositivo de audio.
+- **Barra de Volumen Interactiva con Porcentaje Numérico:** Barra de volumen estilo Spotify situada justo debajo del tiempo de la pista, con botón de silenciar/activar sonido, barra deslizable interactiva con clic y arrastre, porcentaje exacto en tiempo real (ej. `45%`), y ajuste con la rueda del ratón sobre el widget.
 - **Animación Cinemática de Texto (*Marquee con KeyFrames*):**
   - Implementado tanto en el widget de la barra como en la tarjeta flotante (*Flyout*).
   - Medición tipográfica exacta subpíxel mediante `FormattedText` y `DesiredSize` para evitar cualquier recorte accidental.
