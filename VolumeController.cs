@@ -37,8 +37,14 @@ namespace TaskbarMusicWidget
             int GetMasterVolumeLevel(out float pfLevelDB);
             [PreserveSig]
             int GetMasterVolumeLevelScalar(out float pfLevel);
+            int SetChannelVolumeLevel(uint nChannel, float fLevelDB, ref Guid pguidEventContext);
+            int SetChannelVolumeLevelScalar(uint nChannel, float fLevel, ref Guid pguidEventContext);
+            int GetChannelVolumeLevel(uint nChannel, out float pfLevelDB);
+            int GetChannelVolumeLevelScalar(uint nChannel, out float pfLevel);
+            [PreserveSig]
             int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, ref Guid pguidEventContext);
-            int GetMute(out bool pbMute);
+            [PreserveSig]
+            int GetMute([MarshalAs(UnmanagedType.Bool)] out bool pbMute);
         }
         #endregion
 
@@ -147,6 +153,25 @@ namespace TaskbarMusicWidget
             return false;
         }
 
+        public static bool EstablecerSilencio(bool mute)
+        {
+            var epv = GetEndpointVolume();
+            if (epv != null)
+            {
+                try
+                {
+                    Guid emptyGuid = Guid.Empty;
+                    return epv.SetMute(mute, ref emptyGuid) == 0;
+                }
+                catch { }
+                finally
+                {
+                    Marshal.ReleaseComObject(epv);
+                }
+            }
+            return false;
+        }
+
         public static bool AlternarSilencio()
         {
             var epv = GetEndpointVolume();
@@ -157,8 +182,9 @@ namespace TaskbarMusicWidget
                     if (epv.GetMute(out bool isMuted) == 0)
                     {
                         Guid emptyGuid = Guid.Empty;
-                        epv.SetMute(!isMuted, ref emptyGuid);
-                        return !isMuted;
+                        bool nuevoEstado = !isMuted;
+                        epv.SetMute(nuevoEstado, ref emptyGuid);
+                        return nuevoEstado;
                     }
                 }
                 catch { }

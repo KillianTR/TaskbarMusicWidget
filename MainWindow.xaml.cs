@@ -323,6 +323,12 @@ namespace TaskbarMusicWidget
             {
                 _lastTimelineTick = now;
 
+                // Sincronizar estado de volumen y silencio si la ventana flotante está abierta
+                if (_flyoutWindow != null && _flyoutWindow.Visibility == Visibility.Visible)
+                {
+                    _flyoutWindow.ActualizarEstadoVolumen();
+                }
+
                 // Si no hay sesión o no hay música, intentar reconectar (útil para pestañas silenciadas que empiezan a emitir)
                 if (_currentSession == null || _currentTitle == "Sin música")
                 {
