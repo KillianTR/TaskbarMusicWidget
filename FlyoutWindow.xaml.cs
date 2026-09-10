@@ -35,11 +35,13 @@ namespace TaskbarMusicWidget
 
         public FlyoutWindow(MainWindow mainWindow)
         {
+            _isUpdatingVolumeSliderInternally = true;
             InitializeComponent();
             _mainWindow = mainWindow;
             Opacity = 0;
             Visibility = Visibility.Collapsed;
             InicializarTextosLocalizados();
+            _isUpdatingVolumeSliderInternally = false;
             ActualizarEstadoVolumen();
         }
 
@@ -64,25 +66,31 @@ namespace TaskbarMusicWidget
         {
             this.Left = left;
             this.Top = top;
-
-            this.BeginAnimation(OpacityProperty, null);
+            bool wasHidden = this.Visibility != Visibility.Visible;
             this.Visibility = Visibility.Visible;
             ActualizarEstadoVolumen();
             ActualizarMarqueeFlyout();
 
-            var fadeIn = new DoubleAnimation(this.Opacity, 1.0, TimeSpan.FromMilliseconds(150))
+            if (wasHidden || this.Opacity < 0.95)
             {
-                FillBehavior = FillBehavior.Stop
-            };
-            fadeIn.Completed += (s, e) => { this.Opacity = 1.0; };
-            this.BeginAnimation(OpacityProperty, fadeIn);
+                var fadeIn = new DoubleAnimation(this.Opacity, 1.0, TimeSpan.FromMilliseconds(180));
+                this.BeginAnimation(OpacityProperty, fadeIn);
+            }
         }
 
         public void HideFlyout()
         {
-            this.BeginAnimation(OpacityProperty, null);
-            this.Opacity = 0;
-            this.Visibility = Visibility.Collapsed;
+            if (this.Visibility != Visibility.Visible) return;
+
+            var fadeOut = new DoubleAnimation(this.Opacity, 0, TimeSpan.FromMilliseconds(180));
+            fadeOut.Completed += (s, e) =>
+            {
+                if (this.Opacity == 0)
+                {
+                    this.Visibility = Visibility.Collapsed;
+                }
+            };
+            this.BeginAnimation(OpacityProperty, fadeOut);
         }
 
         private void Window_MouseEnter(object sender, MouseEventArgs e)
@@ -268,7 +276,7 @@ namespace TaskbarMusicWidget
 
         private void FlyoutVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_isUpdatingVolumeSliderInternally) return;
+            if (_isUpdatingVolumeSliderInternally || FlyoutVolumeSlider == null || TxtVolumePercent == null || MuteIconPath == null) return;
 
             int vol = (int)Math.Round(FlyoutVolumeSlider.Value);
             VolumeController.EstablecerVolumen((float)(vol / 100.0));
@@ -298,7 +306,7 @@ namespace TaskbarMusicWidget
 
         public void ActualizarVolumen(int vol, bool? isMutedParam = null)
         {
-            if (vol < 0) return;
+            if (vol < 0 || FlyoutVolumeSlider == null || TxtVolumePercent == null || MuteIconPath == null || BtnFlyoutMute == null) return;
 
             bool isMuted = isMutedParam ?? VolumeController.EstaSilenciado();
 
