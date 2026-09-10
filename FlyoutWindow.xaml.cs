@@ -261,9 +261,18 @@ namespace TaskbarMusicWidget
         #endregion
 
         #region Control de Volumen Interactivo
+        private bool _isDraggingVolumeSlider = false;
+        public bool IsDraggingVolumeSlider => _isDraggingVolumeSlider;
+
         private void FlyoutVolumeSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
+            _isDraggingVolumeSlider = true;
             ActualizarPosicionVolumenConRaton(e);
+        }
+
+        private void FlyoutVolumeSlider_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingVolumeSlider = false;
         }
 
         private void ActualizarPosicionVolumenConRaton(MouseButtonEventArgs e)
@@ -284,7 +293,7 @@ namespace TaskbarMusicWidget
             // Si estaba silenciado y el usuario mueve el slider a un volumen > 0, reactivar automáticamente
             if (vol > 0 && VolumeController.EstaSilenciado())
             {
-                VolumeController.AlternarSilencio();
+                VolumeController.EstablecerSilencio(false);
             }
 
             VolumeController.EstablecerVolumen((float)(vol / 100.0));
@@ -307,19 +316,20 @@ namespace TaskbarMusicWidget
 
             if (!wasMuted)
             {
-                // Silenciar (Mute): guarda el volumen previo y pone la barra en 0% visualmente
-                // como en YouTube y Spotify. La música o vídeo sigue reproduciéndose en segundo plano sin pausarse
+                // Silenciar (Mute): guarda el volumen previo y activa el silencio en Windows.
+                // En la interfaz se muestra 0% y el altavoz tachado en rojo.
+                // La canción/video continúa reproduciéndose sin pausarse (igual que en YouTube y Spotify).
                 if (currentVol > 0)
                 {
                     _volumeBeforeMute = currentVol;
                 }
-                VolumeController.AlternarSilencio();
+                VolumeController.EstablecerSilencio(true);
                 ActualizarVolumen(0, isMutedParam: true);
             }
             else
             {
-                // Reactivar sonido (Unmute): restaura el nivel previo
-                VolumeController.AlternarSilencio();
+                // Reactivar sonido (Unmute): desactiva el silencio y restaura el volumen previo.
+                VolumeController.EstablecerSilencio(false);
                 int restoreVol = _volumeBeforeMute > 0 ? _volumeBeforeMute : (currentVol > 0 ? currentVol : 50);
                 VolumeController.EstablecerVolumen((float)(restoreVol / 100.0));
                 ActualizarVolumen(restoreVol, isMutedParam: false);
@@ -328,6 +338,8 @@ namespace TaskbarMusicWidget
 
         public void ActualizarEstadoVolumen()
         {
+            if (_isUpdatingVolumeSliderInternally || _isDraggingVolumeSlider) return;
+
             int vol = VolumeController.ObtenerVolumenActual();
             bool isMuted = VolumeController.EstaSilenciado();
 

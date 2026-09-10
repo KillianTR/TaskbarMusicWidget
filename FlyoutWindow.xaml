@@ -270,6 +270,7 @@
                             Minimum="0" Maximum="100" Value="50" 
                             VerticalAlignment="Center" Cursor="Hand"
                             PreviewMouseDown="FlyoutVolumeSlider_PreviewMouseDown"
+                            PreviewMouseUp="FlyoutVolumeSlider_PreviewMouseUp"
                             ValueChanged="FlyoutVolumeSlider_ValueChanged"/>
 
                     <!-- Porcentaje exacto de volumen con el MISMO tamaño de números que la línea de tiempo (9.5) -->
