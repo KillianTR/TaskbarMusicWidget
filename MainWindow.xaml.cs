@@ -252,9 +252,13 @@ namespace TaskbarMusicWidget
             {
                 _flyoutWindow = new FlyoutWindow(this);
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignorar fallo al instanciar ventana emergente
+                try
+                {
+                    System.IO.File.AppendAllText("widget_error.log", $"[{DateTime.Now}] Error al instanciar FlyoutWindow: {ex}\n");
+                }
+                catch { }
             }
 
             try
