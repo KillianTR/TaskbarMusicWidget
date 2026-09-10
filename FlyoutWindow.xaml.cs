@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,13 +14,20 @@ using Windows.Media;
 
 namespace TaskbarMusicWidget
 {
+    public record MonitorChoice(string Key, string Label);
+
     public partial class FlyoutWindow : Window
     {
         private readonly MainWindow _mainWindow;
         private bool _isDraggingSlider = false;
+        private bool _isUpdatingVolumeSliderInternally = false;
+        private bool _isUpdatingSettingsInternally = false;
 
         private const string PlayPathData = "M 3.5,2 L 12,7 L 3.5,12 Z";
         private const string PausePathData = "M 3,2 L 5.5,2 L 5.5,12 L 3,12 Z M 8.5,2 L 11,2 L 11,12 L 8.5,12 Z";
+
+        private const string SpeakerPathData = "M 3,5 L 0,5 L 0,11 L 3,11 L 7,15 L 7,1 L 3,5 Z M 9.5,4 C 10.8,5.1 11.5,6.5 11.5,8 C 11.5,9.5 10.8,10.9 9.5,12 L 8.5,10.8 C 9.4,9.9 10,8.8 10,8 C 10,7.2 9.4,6.1 8.5,5.2 L 9.5,4 Z M 11.5,1.5 C 13.5,3.2 14.5,5.5 14.5,8 C 14.5,10.5 13.5,12.8 11.5,14.5 L 10.5,13.2 C 12.2,11.8 13,9.9 13,8 C 13,6.1 12.2,4.2 10.5,2.8 L 11.5,1.5 Z";
+        private const string MutePathData = "M 3,5 L 0,5 L 0,11 L 3,11 L 7,15 L 7,1 L 3,5 Z M 10.2,5.1 L 12,6.9 L 13.8,5.1 L 14.9,6.2 L 13.1,8 L 14.9,9.8 L 13.8,10.9 L 12,9.1 L 10.2,10.9 L 9.1,9.8 L 10.9,8 L 9.1,6.2 Z";
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -37,6 +46,9 @@ namespace TaskbarMusicWidget
             Opacity = 0;
             Visibility = Visibility.Collapsed;
             InicializarTextosLocalizados();
+
+            ActualizarVisibilidadBarraVolumen();
+            SettingsManager.SettingsChanged += () => Dispatcher.Invoke(ActualizarVisibilidadBarraVolumen);
         }
 
         private void InicializarTextosLocalizados()
@@ -46,7 +58,12 @@ namespace TaskbarMusicWidget
             BtnFlyoutPrev.ToolTip = I18n.PrevTooltip;
             BtnFlyoutPlayPause.ToolTip = I18n.PlayPauseTooltip;
             BtnFlyoutNext.ToolTip = I18n.NextTooltip;
-            if (FlyoutHeaderGrid != null) FlyoutHeaderGrid.ToolTip = I18n.OpenPlayerTooltip;
+            BtnFlyoutSettings.ToolTip = I18n.SettingsTitle;
+            BtnBackToPlayer.ToolTip = I18n.BackTooltip;
+            TxtSettingsTitle.Text = I18n.SettingsTitle;
+            ChkShowVolumeBar.Content = I18n.ShowVolumeBarLabel;
+            TxtAudioDeviceLabel.Text = I18n.AudioOutputLabel + ":";
+            TxtMonitorLabel.Text = I18n.MonitorLabel + ":";
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -59,6 +76,15 @@ namespace TaskbarMusicWidget
 
         public void ShowFlyout(double left, double top)
         {
+            // Siempre volver a la vista del reproductor cuando se abre de nuevo
+            if (this.Visibility != Visibility.Visible)
+            {
+                SettingsViewGrid.Visibility = Visibility.Collapsed;
+                PlayerViewGrid.Visibility = Visibility.Visible;
+            }
+
+            ActualizarVisibilidadBarraVolumen();
+
             this.Left = left;
             this.Top = top;
             bool wasHidden = this.Visibility != Visibility.Visible;
@@ -82,6 +108,8 @@ namespace TaskbarMusicWidget
                 if (this.Opacity == 0)
                 {
                     this.Visibility = Visibility.Collapsed;
+                    SettingsViewGrid.Visibility = Visibility.Collapsed;
+                    PlayerViewGrid.Visibility = Visibility.Visible;
                 }
             };
             this.BeginAnimation(OpacityProperty, fadeOut);
@@ -251,6 +279,7 @@ namespace TaskbarMusicWidget
             float delta = e.Delta > 0 ? 0.05f : -0.05f;
             int vol = VolumeController.AjustarVolumen(delta);
             _mainWindow.MostrarVolumenToast(vol);
+            ActualizarVolumen(vol);
             e.Handled = true;
         }
 
@@ -263,6 +292,169 @@ namespace TaskbarMusicWidget
         {
             _mainWindow.NotificarMouseEnFlyout(false);
         }
+
+        #region Gestión de Barra de Volumen y Configuración
+        public void AjustarAlturaSegunVista()
+        {
+            double nuevaAltura = 165;
+            if (SettingsViewGrid.Visibility == Visibility.Visible)
+            {
+                nuevaAltura = 230;
+            }
+            else if (SettingsManager.Current.ShowVolumeBar)
+            {
+                nuevaAltura = 198;
+            }
+
+            if (Math.Abs(this.Height - nuevaAltura) > 1)
+            {
+                double deltaH = nuevaAltura - this.Height;
+                this.Top -= deltaH;
+                this.Height = nuevaAltura;
+            }
+        }
+
+        public void ActualizarVisibilidadBarraVolumen()
+        {
+            bool visible = SettingsManager.Current.ShowVolumeBar;
+            VolumeBarRow.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+            if (visible)
+            {
+                ActualizarEstadoVolumen();
+            }
+            AjustarAlturaSegunVista();
+        }
+
+        public void ActualizarEstadoVolumen()
+        {
+            int vol = VolumeController.ObtenerVolumenActual();
+            bool isMuted = VolumeController.EstaSilenciado();
+
+            if (vol >= 0)
+            {
+                ActualizarVolumen(vol, isMuted);
+            }
+        }
+
+        public void ActualizarVolumen(int vol, bool? isMutedParam = null)
+        {
+            if (vol < 0) return;
+
+            bool isMuted = isMutedParam ?? VolumeController.EstaSilenciado();
+
+            _isUpdatingVolumeSliderInternally = true;
+            FlyoutVolumeSlider.Value = vol;
+            TxtVolumePercent.Text = $"{vol}%";
+
+            if (isMuted || vol == 0)
+            {
+                MuteIconPath.Data = Geometry.Parse(MutePathData);
+                MuteIconPath.Fill = (SolidColorBrush)new BrushConverter().ConvertFrom("#E06060")!;
+                BtnFlyoutMute.ToolTip = I18n.IsSpanish ? "Reactivar sonido" : "Unmute";
+            }
+            else
+            {
+                MuteIconPath.Data = Geometry.Parse(SpeakerPathData);
+                MuteIconPath.Fill = (SolidColorBrush)new BrushConverter().ConvertFrom("#A0A0A0")!;
+                BtnFlyoutMute.ToolTip = I18n.IsSpanish ? "Silenciar" : "Mute";
+            }
+            _isUpdatingVolumeSliderInternally = false;
+        }
+
+        private void FlyoutVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_isUpdatingVolumeSliderInternally) return;
+
+            int vol = (int)Math.Round(FlyoutVolumeSlider.Value);
+            VolumeController.EstablecerVolumen((float)(vol / 100.0));
+            TxtVolumePercent.Text = $"{vol}%";
+
+            bool isMuted = vol == 0;
+            MuteIconPath.Data = Geometry.Parse(isMuted ? MutePathData : SpeakerPathData);
+            MuteIconPath.Fill = isMuted ? (SolidColorBrush)new BrushConverter().ConvertFrom("#E06060")! : (SolidColorBrush)new BrushConverter().ConvertFrom("#A0A0A0")!;
+        }
+
+        private void BtnFlyoutMute_Click(object sender, RoutedEventArgs e)
+        {
+            VolumeController.AlternarSilencio();
+            ActualizarEstadoVolumen();
+        }
+
+        private void BtnSettings_Click(object sender, RoutedEventArgs e)
+        {
+            PlayerViewGrid.Visibility = Visibility.Collapsed;
+            SettingsViewGrid.Visibility = Visibility.Visible;
+            CargarDatosConfiguracion();
+            AjustarAlturaSegunVista();
+        }
+
+        private void BtnBackToPlayer_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsViewGrid.Visibility = Visibility.Collapsed;
+            PlayerViewGrid.Visibility = Visibility.Visible;
+            AjustarAlturaSegunVista();
+        }
+
+        private void CargarDatosConfiguracion()
+        {
+            _isUpdatingSettingsInternally = true;
+
+            // 1. Mostrar barra de volumen
+            ChkShowVolumeBar.IsChecked = SettingsManager.Current.ShowVolumeBar;
+
+            // 2. Dispositivos de salida de audio
+            var devices = AudioDeviceManager.ObtenerDispositivosSalida();
+            CmbAudioDevice.ItemsSource = devices;
+            CmbAudioDevice.DisplayMemberPath = "Name";
+            CmbAudioDevice.SelectedValuePath = "Id";
+
+            var defDev = devices.FirstOrDefault(d => d.IsDefault);
+            if (defDev != null)
+            {
+                CmbAudioDevice.SelectedItem = defDev;
+            }
+
+            // 3. Selección de Pantalla
+            var monitorChoices = new List<MonitorChoice>
+            {
+                new MonitorChoice("Auto", I18n.MonitorAuto),
+                new MonitorChoice("Screen1", I18n.MonitorPrimary),
+                new MonitorChoice("Screen2", I18n.MonitorSecondary)
+            };
+            CmbMonitor.ItemsSource = monitorChoices;
+            CmbMonitor.DisplayMemberPath = "Label";
+            CmbMonitor.SelectedValuePath = "Key";
+            CmbMonitor.SelectedValue = SettingsManager.Current.TargetMonitor;
+
+            _isUpdatingSettingsInternally = false;
+        }
+
+        private void ChkShowVolumeBar_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsManager.SetShowVolumeBar(ChkShowVolumeBar.IsChecked == true);
+            ActualizarVisibilidadBarraVolumen();
+        }
+
+        private void CmbAudioDevice_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingSettingsInternally) return;
+
+            if (CmbAudioDevice.SelectedItem is AudioDeviceItem dev)
+            {
+                AudioDeviceManager.EstablecerDispositivoPredeterminado(dev.Id);
+            }
+        }
+
+        private void CmbMonitor_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingSettingsInternally) return;
+
+            if (CmbMonitor.SelectedItem is MonitorChoice choice)
+            {
+                SettingsManager.SetTargetMonitor(choice.Key);
+            }
+        }
+        #endregion
 
         #region Animación de Marquee Suave para Título y Artista
         public void ActualizarMarqueeFlyout()
@@ -293,7 +485,6 @@ namespace TaskbarMusicWidget
 
             double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 238;
 
-            // Medir el ancho real del texto usando el mayor entre DesiredSize y FormattedText
             tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             double textWidth = Math.Max(tb.DesiredSize.Width, MedirAnchoTexto(tb));
 
@@ -302,7 +493,6 @@ namespace TaskbarMusicWidget
                 string cacheKey = tb.Text;
                 if (tb.Tag as string == cacheKey && transform.HasAnimatedProperties)
                 {
-                    // La animación ya está activa para este texto; no reiniciar para no interrumpir el desplazamiento
                     return;
                 }
 
@@ -310,13 +500,12 @@ namespace TaskbarMusicWidget
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
                 transform.X = 0;
 
-                // Margen generoso de 40px para garantizar que se lean hasta los últimos caracteres y paréntesis sin cortar
                 double scrollDistance = -(textWidth - containerWidth + 40);
-                double speed = 28.0; // Píxeles por segundo para un desplazamiento natural y perfectamente legible
+                double speed = 28.0;
                 double scrollTimeSec = Math.Max(2.0, Math.Abs(scrollDistance) / speed);
-                double pauseStart = 0.8; // Pausa inicial reactiva para que el usuario aprecie el movimiento casi de inmediato
-                double pauseEnd = 1.5;   // Pausa en el extremo para leer el final del título
-                double pauseReturn = 0.6; // Pausa breve de regreso
+                double pauseStart = 0.8;
+                double pauseEnd = 1.5;
+                double pauseReturn = 0.6;
 
                 TimeSpan t0 = TimeSpan.Zero;
                 TimeSpan t1 = TimeSpan.FromSeconds(pauseStart);

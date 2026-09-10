@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.8.7-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.9.0-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -22,17 +22,24 @@ A native, lightweight, and elegant Windows taskbar widget that delivers real-tim
 - **Seamless Taskbar Integration:** Docks cleanly into the system tray area with zero distracting frames or mismatched backgrounds.
 - **Universal Media Detection (GSMTC):** Automatically supports Spotify, YouTube, Twitch, Netflix, SoundCloud, VLC, Chrome, Opera, Edge, Brave, and any Windows Media-compatible player.
 - **Expandable Interactive Flyout Card:** Hovering over the widget displays an interactive floating card with high-resolution album art, track title, artist name, a full progress bar with manual scrubbing, and playback controls.
+- **Interactive Volume Bar & Percentage Display:** Optional Spotify-styled volume slider placed directly below the track timeline, featuring an instant mute/unmute button, drag slider, and live volume percentage (e.g., `45%`).
+- **Audio Output Device Switcher:** Easily switch between headphones, speakers, HDMI audio, and other connected audio endpoints directly from settings or the context menu using Windows CoreAudio `IPolicyConfig`.
+- **Multi-Monitor Relocation & Gaming Mode:**
+  - Intelligently detects full-screen games, full-screen video playback, or HDMI monitor inputs (e.g., PS5 on Monitor 1).
+  - Automatically relocates the widget to the secondary monitor's taskbar so you never lose control of your music.
+  - Choose between *Automatic*, *Display 1 (Primary)*, or *Display 2 (Secondary)*.
+- **Integrated Settings Panel:** Accessible via the gear icon (`⚙`) in the flyout header, allowing quick customization of volume bar visibility, target display, and audio output.
 - **Cinematic Text Marquee (KeyFrame Animation):**
   - Implemented in both the taskbar widget and the floating card (*Flyout*).
   - Subpixel typographical measurement via `FormattedText` and `DesiredSize` to eliminate premature truncation.
   - Strategic 2-second pauses at the start and end of each cycle, allowing long song titles and artist names to be read comfortably.
+- **YouTube Shorts Channel Logo Replacement:** Automatically replaces cropped vertical Shorts thumbnails with the creator's high-resolution official channel logo via two-tier RAM & disk caching.
 - **Bilingual Interface Support (English / Spanish):** Automatically detects Windows display language (`CultureInfo.CurrentUICulture`), adapting HUD states (*"No music playing"* / *"Sin música"*), flyout controls, volume toasts, and context menus, while preserving original song and video titles completely untouched.
 - **Spotify Smart Shuffle Integration:** Two-way integration with Spotify via **Windows UI Automation** that detects and toggles between *Disabled*, *Normal Shuffle*, and *Smart Shuffle* with its signature sparkle badge (`✦`).
 - **Mouse Wheel Volume Control:** Adjust system master volume directly over the widget in precise **5%** steps via low-level COM interfaces (**CoreAudio IAudioEndpointVolume**).
 - **Smart Window Focus & Browser Tab Switching:**
   - Clicking the album art or title brings the media application into focus **without unmaximizing or altering its window layout** (even on secondary displays).
   - In Chromium browsers (Opera, Chrome, Edge), intelligently locates the exact background tab playing audio (e.g., YouTube) and switches to it automatically using UI Automation.
-- **Full-Screen Auto-Hide:** Reactively hides during full-screen games, borderless video playback, or when the Windows taskbar auto-hides.
 - **Ultra-Low Resource Usage:** Virtually 0% CPU (< 0.1%) and minimal RAM footprint (~30 MB).
 
 ---
@@ -41,9 +48,9 @@ A native, lightweight, and elegant Windows taskbar widget that delivers real-tim
 
 - **Framework:** .NET 8 (C#) with Windows Presentation Foundation (WPF).
 - **Windows Runtime (WinRT):** `Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager` for real-time media telemetry.
-- **Win32 P/Invoke:** Advanced window manipulation (`user32.dll`, `dwmapi.dll`), Z-order layering (`WS_EX_TOOLWINDOW`, `WS_EX_NOACTIVATE`), and monitor calculation (`MonitorFromWindow`).
+- **Win32 P/Invoke:** Advanced window manipulation (`user32.dll`, `dwmapi.dll`), Z-order layering (`WS_EX_TOOLWINDOW`, `WS_EX_NOACTIVATE`), and multi-monitor enumeration (`EnumDisplayMonitors`, `GetMonitorInfo`).
 - **UI Automation:** `System.Windows.Automation` for Chromium accessibility tree inspection and cross-process button automation.
-- **COM Interop:** Implementation of `IMMDeviceEnumerator` and `IAudioEndpointVolume` for direct hardware audio endpoint control.
+- **COM Interop:** Implementation of `IMMDeviceEnumerator`, `IAudioEndpointVolume`, and undocumented `IPolicyConfig` for hardware audio endpoint routing and volume management.
 
 ---
 
@@ -72,6 +79,14 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.9.0
+- **Flyout Settings Panel:** Added an in-card configuration menu toggled via the new gear icon button (`⚙`) in the flyout header.
+- **Interactive Volume Bar with Numerical Percentage:** Added an optional volume row directly beneath the track timeline with a speaker mute/unmute button, a smooth volume slider, and live numerical volume feedback (e.g., `45%`).
+- **Audio Output Device Switcher:** Change default Windows playback devices (headphones, external speakers, monitors, DACs) on the fly via COM `IPolicyConfig`. Available in both Flyout Settings and the right-click context menu.
+- **Multi-Monitor Relocation & Gaming Mode:** Full support for multi-monitor setups. When Monitor 1 has a fullscreen game, a fullscreen video, or is switched to a console input (e.g., PS5 HDMI), the widget automatically relocates to Monitor 2's taskbar. Users can also pin the widget to *Display 1*, *Display 2*, or keep *Automatic*.
+- **Native Pure WPF Multi-Monitor Architecture:** Implemented monitor enumeration directly via Win32 `EnumDisplayMonitors`, keeping the binary lightweight and free of WinForms dependencies.
+- **Settings Persistence:** User preferences are automatically saved in `%LocalAppData%\TaskbarMusicWidget\settings.json`.
 
 ### v0.8.7
 - **YouTube Shorts Channel Logo Replacement (Hotfix / Feature):** Automatically detects when media playback originates from a vertical YouTube Short (via 9:16 aspect ratio detection `PixelHeight > PixelWidth` or `#shorts` title tags) and replaces the split/cropped video thumbnail with the official high-resolution channel logo/avatar.

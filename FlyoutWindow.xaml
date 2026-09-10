@@ -82,6 +82,46 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Estilo moderno oscuro para ComboBox -->
+        <Style x:Key="DarkComboBoxStyle" TargetType="{x:Type ComboBox}">
+            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#44FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="{x:Type ComboBoxItem}">
+                        <Setter Property="Background" Value="#222222"/>
+                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                        <Setter Property="Padding" Value="6,5"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#383838"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#1ED760"/>
+                                <Setter Property="Foreground" Value="#000000"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Resources">
+                <Setter.Value>
+                    <ResourceDictionary>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#222222"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FFFFFF"/>
+                    </ResourceDictionary>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="10">
@@ -96,148 +136,236 @@
             </Border.Effect>
 
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <!-- VISTA 1: REPRODUCTOR PRINCIPAL -->
+                <Grid x:Name="PlayerViewGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <!-- Fila 1: Carátula, Título y Artista (Clic para enfocar la app) -->
-                <Grid x:Name="FlyoutHeaderGrid" Grid.Row="0" Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                    <!-- Fila 1: Carátula, Título, Artista y Botón de Ajustes -->
+                    <Grid x:Name="FlyoutHeaderGrid" Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Carátula grande redondeada -->
-                    <Border Grid.Column="0" Width="48" Height="48" CornerRadius="6" 
-                            ClipToBounds="True" Background="#2C2C2C">
-                        <Image x:Name="FlyoutCover" Stretch="UniformToFill"/>
-                    </Border>
+                        <!-- Carátula grande redondeada (Clic para enfocar la app) -->
+                        <Border Grid.Column="0" Width="48" Height="48" CornerRadius="6" 
+                                ClipToBounds="True" Background="#2C2C2C" Cursor="Hand"
+                                MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
+                            <Image x:Name="FlyoutCover" Stretch="UniformToFill"/>
+                        </Border>
 
-                    <!-- Textos con Marquee dinámico -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
-                        <Grid x:Name="FlyoutTitleContainer" ClipToBounds="True" Height="19">
-                            <Canvas Height="19">
-                                <TextBlock x:Name="FlyoutTitle" Text="Sin música" Foreground="#FFFFFF" 
-                                           FontSize="12.5" FontWeight="SemiBold">
-                                    <TextBlock.RenderTransform>
-                                        <TranslateTransform x:Name="FlyoutTitleTransform" X="0"/>
-                                    </TextBlock.RenderTransform>
-                                </TextBlock>
-                            </Canvas>
-                        </Grid>
-                        <Grid x:Name="FlyoutArtistContainer" ClipToBounds="True" Height="16" Margin="0,2,0,0">
-                            <Canvas Height="16">
-                                <TextBlock x:Name="FlyoutArtist" Text="Reproductor inactivo" Foreground="#A0A0A0" 
-                                           FontSize="10.5">
-                                    <TextBlock.RenderTransform>
-                                        <TranslateTransform x:Name="FlyoutArtistTransform" X="0"/>
-                                    </TextBlock.RenderTransform>
-                                </TextBlock>
-                            </Canvas>
-                        </Grid>
+                        <!-- Textos con Marquee dinámico (Clic para enfocar la app) -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,6,0"
+                                    Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
+                            <Grid x:Name="FlyoutTitleContainer" ClipToBounds="True" Height="19">
+                                <Canvas Height="19">
+                                    <TextBlock x:Name="FlyoutTitle" Text="Sin música" Foreground="#FFFFFF" 
+                                               FontSize="12.5" FontWeight="SemiBold">
+                                        <TextBlock.RenderTransform>
+                                            <TranslateTransform x:Name="FlyoutTitleTransform" X="0"/>
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Canvas>
+                            </Grid>
+                            <Grid x:Name="FlyoutArtistContainer" ClipToBounds="True" Height="16" Margin="0,2,0,0">
+                                <Canvas Height="16">
+                                    <TextBlock x:Name="FlyoutArtist" Text="Reproductor inactivo" Foreground="#A0A0A0" 
+                                               FontSize="10.5">
+                                        <TextBlock.RenderTransform>
+                                            <TranslateTransform x:Name="FlyoutArtistTransform" X="0"/>
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Canvas>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Botón Configuración (Engranaje) -->
+                        <Button x:Name="BtnFlyoutSettings" Grid.Column="2" Style="{StaticResource FlyoutIconButton}"
+                                Width="26" Height="26" VerticalAlignment="Top" Margin="0,2,0,0"
+                                Click="BtnSettings_Click" ToolTip="Configuración">
+                            <Path Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0"
+                                  Data="M 19.14,12.94 C 19.18,12.64 19.2,12.33 19.2,12 C 19.2,11.67 19.18,11.36 19.13,11.06 L 21.16,9.48 C 21.34,9.34 21.39,9.08 21.28,8.88 L 19.36,5.55 C 19.24,5.35 18.99,5.27 18.78,5.36 L 16.39,6.32 C 15.89,5.94 15.35,5.62 14.76,5.38 L 14.4,2.84 C 14.36,2.6 14.16,2.42 13.92,2.42 L 10.08,2.42 C 9.84,2.42 9.64,2.6 9.6,2.84 L 9.24,5.38 C 8.65,5.62 8.11,5.94 7.61,6.32 L 5.22,5.36 C 5.01,5.27 4.76,5.35 4.64,5.55 L 2.72,8.88 C 2.61,9.08 2.66,9.34 2.84,9.48 L 4.87,11.06 C 4.82,11.36 4.8,11.67 4.8,12 C 4.8,12.33 4.82,12.64 4.87,12.94 L 2.84,14.52 C 2.66,14.66 2.61,14.92 2.72,15.12 L 4.64,18.45 C 4.76,18.65 5.01,18.73 5.22,18.64 L 7.61,17.68 C 8.11,18.06 8.65,18.38 9.24,18.62 L 9.6,21.16 C 9.64,21.4 9.84,21.58 10.08,21.58 L 13.92,21.58 C 14.16,21.58 14.36,21.4 14.4,21.16 L 14.76,18.62 C 15.35,18.38 15.89,18.06 16.39,17.68 L 18.78,18.64 C 18.99,18.73 19.24,18.65 19.36,18.45 L 21.28,15.12 C 21.39,14.92 21.34,14.66 21.16,14.52 L 19.14,12.94 Z M 12,15.5 C 10.07,15.5 8.5,13.93 8.5,12 C 8.5,10.07 10.07,8.5 12,8.5 C 13.93,8.5 15.5,10.07 15.5,12 C 15.5,13.93 13.93,15.5 12,15.5 Z"/>
+                        </Button>
+                    </Grid>
+
+                    <!-- Fila 2: Controles estilo Spotify (Shuffle, Anterior, Play circular blanco, Siguiente, Repetir) -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" 
+                                VerticalAlignment="Center" Margin="0,8,0,4">
+                        <!-- Botón Aleatorio / Shuffle (exclusivo Spotify con soporte Smart Shuffle) -->
+                        <Button x:Name="BtnFlyoutShuffle" Style="{StaticResource FlyoutIconButton}" 
+                                Width="30" Height="30" Margin="0,0,8,0" Click="BtnShuffle_Click" 
+                                ToolTip="Aleatorio" Visibility="Collapsed">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid>
+                                    <Path x:Name="ShuffleIconPath" Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0" 
+                                          Data="M 14,4 L 14,2 L 18,5.5 L 14,9 L 14,7 L 11,7 C 9.5,7 8.5,8 7.5,9.5 L 6,11.5 C 4.8,13 3.5,14 1.5,14 L 0,14 L 0,11.5 L 1.5,11.5 C 2.8,11.5 3.8,10.8 4.6,9.5 L 6.1,7.5 C 7.3,6 8.6,5 11,5 L 14,5 Z M 14,12 L 14,10 L 18,13.5 L 14,17 L 14,15 L 11,15 C 9.8,15 8.8,14.3 8,13.2 L 9.3,11.5 C 9.8,12.2 10.4,12.5 11,12.5 L 14,12.5 Z M 0,5.5 L 0,3 L 1.5,3 C 3.5,3 4.8,4 6,5.5 L 4.6,7.5 C 3.8,6.2 2.8,5.5 1.5,5.5 Z"/>
+                                    <!-- Destello de Shuffle Inteligente (Smart Shuffle) -->
+                                    <Path x:Name="SmartShuffleSparkle" Width="6.5" Height="6.5" Stretch="Uniform" Fill="#1ED760" 
+                                          Data="M 4,0 Q 4,4 8,4 Q 4,4 4,8 Q 4,4 0,4 Q 4,4 4,0 Z" 
+                                          HorizontalAlignment="Right" VerticalAlignment="Top" 
+                                          Margin="0,-3,-3,0" Visibility="Collapsed"/>
+                                </Grid>
+                                <Ellipse x:Name="ShuffleDot" Width="3" Height="3" Fill="#1ED760" Margin="0,2,0,0" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Botón Anterior -->
+                        <Button x:Name="BtnFlyoutPrev" Style="{StaticResource FlyoutIconButton}" 
+                                Width="30" Height="30" Click="BtnPrev_Click" ToolTip="Anterior">
+                            <Path Width="14" Height="14" Stretch="Uniform" Fill="#FFFFFF" 
+                                  Data="M 2,2.5 L 4,2.5 L 4,11.5 L 2,11.5 Z M 12,2.5 L 4.5,7 L 12,11.5 Z"/>
+                        </Button>
+
+                        <!-- Botón Play/Pausa Circular Blanco estilo Spotify -->
+                        <Button x:Name="BtnFlyoutPlayPause" Width="36" Height="36" Margin="14,0" 
+                                Cursor="Hand" Click="BtnPlayPause_Click" ToolTip="Reproducir / Pausar">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="circle" Background="#FFFFFF" CornerRadius="18">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="circle" Property="Background" Value="#E0E0E0"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="circle" Property="Background" Value="#C0C0C0"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <Path x:Name="FlyoutPlayPausePath" Width="13" Height="13" 
+                                  Stretch="Uniform" Fill="#000000"
+                                  Data="M 3.5,2 L 12,7 L 3.5,12 Z"
+                                  Margin="1.5,0,0,0"/>
+                        </Button>
+
+                        <!-- Botón Siguiente -->
+                        <Button x:Name="BtnFlyoutNext" Style="{StaticResource FlyoutIconButton}" 
+                                Width="30" Height="30" Click="BtnNext_Click" ToolTip="Siguiente">
+                            <Path Width="14" Height="14" Stretch="Uniform" Fill="#FFFFFF" 
+                                  Data="M 2,2.5 L 9.5,7 L 2,11.5 Z M 10,2.5 L 12,2.5 L 12,11.5 L 10,11.5 Z"/>
+                        </Button>
+
+                        <!-- Botón Repetir / Repeat (exclusivo Spotify) -->
+                        <Button x:Name="BtnFlyoutRepeat" Style="{StaticResource FlyoutIconButton}" 
+                                Width="30" Height="30" Margin="8,0,0,0" Click="BtnRepeat_Click" 
+                                ToolTip="Repetir" Visibility="Collapsed">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid>
+                                    <Path x:Name="RepeatIconPath" Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0" 
+                                          Data="M 4,7 L 4,5 C 4,3.9 4.9,3 6,3 L 14,3 L 12,1 L 13.4,0 L 17,3.5 L 13.4,7 L 12,6 L 14,4.5 L 6,4.5 C 5.7,4.5 5.5,4.7 5.5,5 L 5.5,7 Z M 14,11 L 14,13 C 14,14.1 13.1,15 12,15 L 4,15 L 6,17 L 4.6,18 L 1,14.5 L 4.6,11 L 6,12 L 4,13.5 L 12,13.5 C 12.3,13.5 12.5,13.3 12.5,13 L 12.5,11 Z"/>
+                                    <TextBlock x:Name="RepeatOneBadge" Text="1" FontSize="6.5" FontWeight="Bold" 
+                                               Foreground="#1ED760" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                               Margin="0,-1,0,0" Visibility="Collapsed"/>
+                                </Grid>
+                                <Ellipse x:Name="RepeatDot" Width="3" Height="3" Fill="#1ED760" Margin="0,2,0,0" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
+
+                    <!-- Fila 3: Línea de tiempo / Barra de progreso estilo Spotify -->
+                    <Grid Grid.Row="2" Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock x:Name="TxtPosition" Grid.Column="0" Text="0:00" Foreground="#8E8E8E" 
+                                   FontSize="9.5" VerticalAlignment="Center" Margin="0,0,6,0" MinWidth="26" 
+                                   TextAlignment="Right"/>
+
+                        <Slider x:Name="TimelineSlider" Grid.Column="1" 
+                                Style="{StaticResource SpotifySliderStyle}"
+                                Minimum="0" Maximum="100" Value="0" 
+                                VerticalAlignment="Center" Cursor="Hand"
+                                PreviewMouseDown="TimelineSlider_PreviewMouseDown"
+                                PreviewMouseUp="TimelineSlider_PreviewMouseUp"/>
+
+                        <TextBlock x:Name="TxtDuration" Grid.Column="2" Text="0:00" Foreground="#8E8E8E" 
+                                   FontSize="9.5" VerticalAlignment="Center" Margin="6,0,0,0" MinWidth="26" 
+                                   TextAlignment="Left"/>
+                    </Grid>
+
+                    <!-- Fila 4: Barra de volumen interactiva (activable en configuración) -->
+                    <Grid x:Name="VolumeBarRow" Grid.Row="3" Margin="0,8,0,0" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Botón Silencio / Altavoz -->
+                        <Button x:Name="BtnFlyoutMute" Style="{StaticResource FlyoutIconButton}"
+                                Width="26" Height="26" Margin="0,0,6,0" Click="BtnFlyoutMute_Click" ToolTip="Silenciar">
+                            <Path x:Name="MuteIconPath" Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0"
+                                  Data="M 3,5 L 0,5 L 0,11 L 3,11 L 7,15 L 7,1 L 3,5 Z M 9.5,4 C 10.8,5.1 11.5,6.5 11.5,8 C 11.5,9.5 10.8,10.9 9.5,12 L 8.5,10.8 C 9.4,9.9 10,8.8 10,8 C 10,7.2 9.4,6.1 8.5,5.2 L 9.5,4 Z M 11.5,1.5 C 13.5,3.2 14.5,5.5 14.5,8 C 14.5,10.5 13.5,12.8 11.5,14.5 L 10.5,13.2 C 12.2,11.8 13,9.9 13,8 C 13,6.1 12.2,4.2 10.5,2.8 L 11.5,1.5 Z"/>
+                        </Button>
+
+                        <!-- Slider de volumen estilo Spotify -->
+                        <Slider x:Name="FlyoutVolumeSlider" Grid.Column="1" 
+                                Style="{StaticResource SpotifySliderStyle}"
+                                Minimum="0" Maximum="100" Value="50" 
+                                VerticalAlignment="Center" Cursor="Hand"
+                                ValueChanged="FlyoutVolumeSlider_ValueChanged"/>
+
+                        <!-- Porcentaje exacto de volumen (ej. "45%") -->
+                        <TextBlock x:Name="TxtVolumePercent" Grid.Column="2" Text="50%" Foreground="#FFFFFF" 
+                                   FontSize="10.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" 
+                                   MinWidth="28" TextAlignment="Right"/>
+                    </Grid>
                 </Grid>
 
-                <!-- Fila 2: Controles estilo Spotify (Shuffle, Anterior, Play circular blanco, Siguiente, Repetir) -->
-                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" 
-                            VerticalAlignment="Center" Margin="0,8,0,4">
-                    <!-- Botón Aleatorio / Shuffle (exclusivo Spotify con soporte Smart Shuffle) -->
-                    <Button x:Name="BtnFlyoutShuffle" Style="{StaticResource FlyoutIconButton}" 
-                            Width="30" Height="30" Margin="0,0,8,0" Click="BtnShuffle_Click" 
-                            ToolTip="Aleatorio" Visibility="Collapsed">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Grid>
-                                <Path x:Name="ShuffleIconPath" Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0" 
-                                      Data="M 14,4 L 14,2 L 18,5.5 L 14,9 L 14,7 L 11,7 C 9.5,7 8.5,8 7.5,9.5 L 6,11.5 C 4.8,13 3.5,14 1.5,14 L 0,14 L 0,11.5 L 1.5,11.5 C 2.8,11.5 3.8,10.8 4.6,9.5 L 6.1,7.5 C 7.3,6 8.6,5 11,5 L 14,5 Z M 14,12 L 14,10 L 18,13.5 L 14,17 L 14,15 L 11,15 C 9.8,15 8.8,14.3 8,13.2 L 9.3,11.5 C 9.8,12.2 10.4,12.5 11,12.5 L 14,12.5 Z M 0,5.5 L 0,3 L 1.5,3 C 3.5,3 4.8,4 6,5.5 L 4.6,7.5 C 3.8,6.2 2.8,5.5 1.5,5.5 Z"/>
-                                <!-- Destello de Shuffle Inteligente (Smart Shuffle) -->
-                                <Path x:Name="SmartShuffleSparkle" Width="6.5" Height="6.5" Stretch="Uniform" Fill="#1ED760" 
-                                      Data="M 4,0 Q 4,4 8,4 Q 4,4 4,8 Q 4,4 0,4 Q 4,4 4,0 Z" 
-                                      HorizontalAlignment="Right" VerticalAlignment="Top" 
-                                      Margin="0,-3,-3,0" Visibility="Collapsed"/>
-                            </Grid>
-                            <Ellipse x:Name="ShuffleDot" Width="3" Height="3" Fill="#1ED760" Margin="0,2,0,0" Visibility="Collapsed"/>
-                        </StackPanel>
-                    </Button>
+                <!-- VISTA 2: PANEL DE CONFIGURACIÓN -->
+                <Grid x:Name="SettingsViewGrid" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                    <!-- Botón Anterior -->
-                    <Button x:Name="BtnFlyoutPrev" Style="{StaticResource FlyoutIconButton}" 
-                            Width="30" Height="30" Click="BtnPrev_Click" ToolTip="Anterior">
-                        <Path Width="14" Height="14" Stretch="Uniform" Fill="#FFFFFF" 
-                              Data="M 2,2.5 L 4,2.5 L 4,11.5 L 2,11.5 Z M 12,2.5 L 4.5,7 L 12,11.5 Z"/>
-                    </Button>
+                    <!-- Cabecera de configuración: botón volver + título -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Botón Play/Pausa Circular Blanco estilo Spotify -->
-                    <Button x:Name="BtnFlyoutPlayPause" Width="36" Height="36" Margin="14,0" 
-                            Cursor="Hand" Click="BtnPlayPause_Click" ToolTip="Reproducir / Pausar">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="circle" Background="#FFFFFF" CornerRadius="18">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="circle" Property="Background" Value="#E0E0E0"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="circle" Property="Background" Value="#C0C0C0"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                        <Path x:Name="FlyoutPlayPausePath" Width="13" Height="13" 
-                              Stretch="Uniform" Fill="#000000"
-                              Data="M 3.5,2 L 12,7 L 3.5,12 Z"
-                              Margin="1.5,0,0,0"/>
-                    </Button>
+                        <Button x:Name="BtnBackToPlayer" Grid.Column="0" Style="{StaticResource FlyoutIconButton}"
+                                Width="26" Height="26" Click="BtnBackToPlayer_Click" ToolTip="Volver al reproductor">
+                            <Path Width="11" Height="11" Stretch="Uniform" Fill="#FFFFFF"
+                                  Data="M 12,6 L 3.5,6 L 7.5,2 L 6,0.5 L 0,6.5 L 6,12.5 L 7.5,11 L 3.5,7 L 12,7 Z"/>
+                        </Button>
 
-                    <!-- Botón Siguiente -->
-                    <Button x:Name="BtnFlyoutNext" Style="{StaticResource FlyoutIconButton}" 
-                            Width="30" Height="30" Click="BtnNext_Click" ToolTip="Siguiente">
-                        <Path Width="14" Height="14" Stretch="Uniform" Fill="#FFFFFF" 
-                              Data="M 2,2.5 L 9.5,7 L 2,11.5 Z M 10,2.5 L 12,2.5 L 12,11.5 L 10,11.5 Z"/>
-                    </Button>
+                        <TextBlock x:Name="TxtSettingsTitle" Grid.Column="1" Text="Configuración" Foreground="#FFFFFF"
+                                   FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </Grid>
 
-                    <!-- Botón Repetir / Repeat (exclusivo Spotify) -->
-                    <Button x:Name="BtnFlyoutRepeat" Style="{StaticResource FlyoutIconButton}" 
-                            Width="30" Height="30" Margin="8,0,0,0" Click="BtnRepeat_Click" 
-                            ToolTip="Repetir" Visibility="Collapsed">
-                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Grid>
-                                <Path x:Name="RepeatIconPath" Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0" 
-                                      Data="M 4,7 L 4,5 C 4,3.9 4.9,3 6,3 L 14,3 L 12,1 L 13.4,0 L 17,3.5 L 13.4,7 L 12,6 L 14,4.5 L 6,4.5 C 5.7,4.5 5.5,4.7 5.5,5 L 5.5,7 Z M 14,11 L 14,13 C 14,14.1 13.1,15 12,15 L 4,15 L 6,17 L 4.6,18 L 1,14.5 L 4.6,11 L 6,12 L 4,13.5 L 12,13.5 C 12.3,13.5 12.5,13.3 12.5,13 L 12.5,11 Z"/>
-                                <TextBlock x:Name="RepeatOneBadge" Text="1" FontSize="6.5" FontWeight="Bold" 
-                                           Foreground="#1ED760" HorizontalAlignment="Center" VerticalAlignment="Center" 
-                                           Margin="0,-1,0,0" Visibility="Collapsed"/>
-                            </Grid>
-                            <Ellipse x:Name="RepeatDot" Width="3" Height="3" Fill="#1ED760" Margin="0,2,0,0" Visibility="Collapsed"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
+                    <!-- Opciones de configuración -->
+                    <StackPanel Grid.Row="1">
+                        <!-- Opción 1: Mostrar barra de volumen -->
+                        <CheckBox x:Name="ChkShowVolumeBar" Content="Mostrar barra de volumen"
+                                  Foreground="#FFFFFF" FontSize="11" Cursor="Hand" Margin="2,0,0,10"
+                                  Click="ChkShowVolumeBar_Click"/>
 
-                <!-- Fila 3: Línea de tiempo / Barra de progreso estilo Spotify -->
-                <Grid Grid.Row="2" Margin="0,2,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                        <!-- Opción 2: Dispositivo de salida de audio -->
+                        <TextBlock x:Name="TxtAudioDeviceLabel" Text="Dispositivo de salida de audio:" Foreground="#A0A0A0" 
+                                   FontSize="10.5" Margin="2,0,0,3"/>
+                        <ComboBox x:Name="CmbAudioDevice" Style="{StaticResource DarkComboBoxStyle}" Height="26" Margin="0,0,0,10"
+                                  SelectionChanged="CmbAudioDevice_SelectionChanged"/>
 
-                    <TextBlock x:Name="TxtPosition" Grid.Column="0" Text="0:00" Foreground="#8E8E8E" 
-                               FontSize="9.5" VerticalAlignment="Center" Margin="0,0,6,0" MinWidth="26" 
-                               TextAlignment="Right"/>
-
-                    <Slider x:Name="TimelineSlider" Grid.Column="1" 
-                            Style="{StaticResource SpotifySliderStyle}"
-                            Minimum="0" Maximum="100" Value="0" 
-                            VerticalAlignment="Center" Cursor="Hand"
-                            PreviewMouseDown="TimelineSlider_PreviewMouseDown"
-                            PreviewMouseUp="TimelineSlider_PreviewMouseUp"/>
-
-                    <TextBlock x:Name="TxtDuration" Grid.Column="2" Text="0:00" Foreground="#8E8E8E" 
-                               FontSize="9.5" VerticalAlignment="Center" Margin="6,0,0,0" MinWidth="26" 
-                               TextAlignment="Left"/>
+                        <!-- Opción 3: Pantalla del widget -->
+                        <TextBlock x:Name="TxtMonitorLabel" Text="Pantalla del widget:" Foreground="#A0A0A0" 
+                                   FontSize="10.5" Margin="2,0,0,3"/>
+                        <ComboBox x:Name="CmbMonitor" Style="{StaticResource DarkComboBoxStyle}" Height="26"
+                                  SelectionChanged="CmbMonitor_SelectionChanged"/>
+                    </StackPanel>
                 </Grid>
             </Grid>
         </Border>
