@@ -101,6 +101,7 @@ namespace TaskbarMusicWidget
         public void HideFlyout()
         {
             if (this.Visibility != Visibility.Visible) return;
+            if (HayPopupAbierto()) return;
 
             var fadeOut = new DoubleAnimation(this.Opacity, 0, TimeSpan.FromMilliseconds(180));
             fadeOut.Completed += (s, e) =>
@@ -294,12 +295,23 @@ namespace TaskbarMusicWidget
         }
 
         #region Gestión de Barra de Volumen y Configuración
+        public bool HayPopupAbierto()
+        {
+            return (CmbAudioDevice != null && CmbAudioDevice.IsDropDownOpen) || 
+                   (CmbMonitor != null && CmbMonitor.IsDropDownOpen);
+        }
+
+        public bool EstaEnConfiguracion()
+        {
+            return SettingsViewGrid != null && SettingsViewGrid.Visibility == Visibility.Visible;
+        }
+
         public void AjustarAlturaSegunVista()
         {
             double nuevaAltura = 165;
             if (SettingsViewGrid.Visibility == Visibility.Visible)
             {
-                nuevaAltura = 230;
+                nuevaAltura = 245;
             }
             else if (SettingsManager.Current.ShowVolumeBar)
             {

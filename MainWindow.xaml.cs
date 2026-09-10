@@ -349,12 +349,6 @@ namespace TaskbarMusicWidget
             if (TrackInfoPanel != null) TrackInfoPanel.ToolTip = I18n.OpenPlayerTooltip;
             if (MenuReconnectItem != null) MenuReconnectItem.Header = I18n.MenuReconnect;
             if (MenuExitItem != null) MenuExitItem.Header = I18n.MenuExit;
-            if (MenuShowVolumeBarItem != null) MenuShowVolumeBarItem.Header = I18n.ShowVolumeBarLabel;
-            if (MenuMonitorItem != null) MenuMonitorItem.Header = I18n.MonitorLabel;
-            if (MenuMonAuto != null) MenuMonAuto.Header = I18n.MonitorAuto;
-            if (MenuMon1 != null) MenuMon1.Header = I18n.MonitorPrimary;
-            if (MenuMon2 != null) MenuMon2.Header = I18n.MonitorSecondary;
-            if (MenuAudioDeviceItem != null) MenuAudioDeviceItem.Header = I18n.AudioOutputLabel;
         }
 
         private void WatchdogTimer_Tick(object? sender, EventArgs e)
@@ -1750,6 +1744,10 @@ namespace TaskbarMusicWidget
         {
             bool ratonEnWidget = RootBorder.IsMouseOver;
             bool ratonEnFlyout = _flyoutWindow != null && _flyoutWindow.IsMouseOver;
+            bool popupAbierto = _flyoutWindow != null && _flyoutWindow.HayPopupAbierto();
+
+            // Si hay un menú desplegable de opciones abierto, no cerrar
+            if (popupAbierto) return;
 
             if (!ratonEnWidget && !ratonEnFlyout)
             {
@@ -1760,58 +1758,6 @@ namespace TaskbarMusicWidget
         #endregion
 
         #region Menú Contextual (Clic Derecho)
-        private void ContextMenu_Opened(object sender, RoutedEventArgs e)
-        {
-            MenuShowVolumeBarItem.IsChecked = SettingsManager.Current.ShowVolumeBar;
-
-            string mon = SettingsManager.Current.TargetMonitor;
-            MenuMonAuto.IsChecked = mon == "Auto";
-            MenuMon1.IsChecked = mon == "Screen1";
-            MenuMon2.IsChecked = mon == "Screen2";
-
-            // Cargar dinámicamente los dispositivos de audio disponibles
-            MenuAudioDeviceItem.Items.Clear();
-            var devices = AudioDeviceManager.ObtenerDispositivosSalida();
-            foreach (var dev in devices)
-            {
-                var mi = new MenuItem
-                {
-                    Header = dev.Name,
-                    IsCheckable = true,
-                    IsChecked = dev.IsDefault,
-                    Tag = dev.Id
-                };
-                mi.Click += (s, ev) =>
-                {
-                    if (s is MenuItem clicked && clicked.Tag is string id)
-                    {
-                        AudioDeviceManager.EstablecerDispositivoPredeterminado(id);
-                    }
-                };
-                MenuAudioDeviceItem.Items.Add(mi);
-            }
-        }
-
-        private void MenuShowVolumeBar_Click(object sender, RoutedEventArgs e)
-        {
-            SettingsManager.SetShowVolumeBar(MenuShowVolumeBarItem.IsChecked);
-        }
-
-        private void MenuMonAuto_Click(object sender, RoutedEventArgs e)
-        {
-            SettingsManager.SetTargetMonitor("Auto");
-        }
-
-        private void MenuMon1_Click(object sender, RoutedEventArgs e)
-        {
-            SettingsManager.SetTargetMonitor("Screen1");
-        }
-
-        private void MenuMon2_Click(object sender, RoutedEventArgs e)
-        {
-            SettingsManager.SetTargetMonitor("Screen2");
-        }
-
         private void MenuReconnect_Click(object sender, RoutedEventArgs e)
         {
             ConectarSesion();

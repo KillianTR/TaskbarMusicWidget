@@ -59,9 +59,10 @@
             </Setter>
         </Style>
 
-        <!-- Estilo para botones redondos u hover -->
+        <!-- Estilo para botones redondos con hover Fluent -->
         <Style x:Key="FlyoutIconButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#B0B0B0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -73,9 +74,11 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#25FFFFFF"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#40FFFFFF"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -89,7 +92,7 @@
             <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#44FFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Padding" Value="6,4"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="ItemContainerStyle">
@@ -145,7 +148,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Fila 1: Carátula, Título, Artista y Botón de Ajustes -->
+                    <!-- Fila 1: Carátula, Título, Artista y Botón de Ajustes (Engranaje) -->
                     <Grid x:Name="FlyoutHeaderGrid" Grid.Row="0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -161,7 +164,7 @@
                         </Border>
 
                         <!-- Textos con Marquee dinámico (Clic para enfocar la app) -->
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,6,0"
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,8,0"
                                     Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
                             <Grid x:Name="FlyoutTitleContainer" ClipToBounds="True" Height="19">
                                 <Canvas Height="19">
@@ -185,12 +188,13 @@
                             </Grid>
                         </StackPanel>
 
-                        <!-- Botón Configuración (Engranaje) -->
+                        <!-- Botón Configuración (Icono de engranaje nativo Fluent sin texto) -->
                         <Button x:Name="BtnFlyoutSettings" Grid.Column="2" Style="{StaticResource FlyoutIconButton}"
-                                Width="26" Height="26" VerticalAlignment="Top" Margin="0,2,0,0"
+                                Width="30" Height="30" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="2,0,0,0"
                                 Click="BtnSettings_Click" ToolTip="Configuración">
-                            <Path Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0"
-                                  Data="M 19.14,12.94 C 19.18,12.64 19.2,12.33 19.2,12 C 19.2,11.67 19.18,11.36 19.13,11.06 L 21.16,9.48 C 21.34,9.34 21.39,9.08 21.28,8.88 L 19.36,5.55 C 19.24,5.35 18.99,5.27 18.78,5.36 L 16.39,6.32 C 15.89,5.94 15.35,5.62 14.76,5.38 L 14.4,2.84 C 14.36,2.6 14.16,2.42 13.92,2.42 L 10.08,2.42 C 9.84,2.42 9.64,2.6 9.6,2.84 L 9.24,5.38 C 8.65,5.62 8.11,5.94 7.61,6.32 L 5.22,5.36 C 5.01,5.27 4.76,5.35 4.64,5.55 L 2.72,8.88 C 2.61,9.08 2.66,9.34 2.84,9.48 L 4.87,11.06 C 4.82,11.36 4.8,11.67 4.8,12 C 4.8,12.33 4.82,12.64 4.87,12.94 L 2.84,14.52 C 2.66,14.66 2.61,14.92 2.72,15.12 L 4.64,18.45 C 4.76,18.65 5.01,18.73 5.22,18.64 L 7.61,17.68 C 8.11,18.06 8.65,18.38 9.24,18.62 L 9.6,21.16 C 9.64,21.4 9.84,21.58 10.08,21.58 L 13.92,21.58 C 14.16,21.58 14.36,21.4 14.4,21.16 L 14.76,18.62 C 15.35,18.38 15.89,18.06 16.39,17.68 L 18.78,18.64 C 18.99,18.73 19.24,18.65 19.36,18.45 L 21.28,15.12 C 21.39,14.92 21.34,14.66 21.16,14.52 L 19.14,12.94 Z M 12,15.5 C 10.07,15.5 8.5,13.93 8.5,12 C 8.5,10.07 10.07,8.5 12,8.5 C 13.93,8.5 15.5,10.07 15.5,12 C 15.5,13.93 13.93,15.5 12,15.5 Z"/>
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" 
+                                       FontSize="15" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                     </Grid>
 
@@ -331,39 +335,41 @@
                     </Grid.RowDefinitions>
 
                     <!-- Cabecera de configuración: botón volver + título -->
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
+                        <!-- Botón Volver con icono Fluent -->
                         <Button x:Name="BtnBackToPlayer" Grid.Column="0" Style="{StaticResource FlyoutIconButton}"
-                                Width="26" Height="26" Click="BtnBackToPlayer_Click" ToolTip="Volver al reproductor">
-                            <Path Width="11" Height="11" Stretch="Uniform" Fill="#FFFFFF"
-                                  Data="M 12,6 L 3.5,6 L 7.5,2 L 6,0.5 L 0,6.5 L 6,12.5 L 7.5,11 L 3.5,7 L 12,7 Z"/>
+                                Width="28" Height="28" Click="BtnBackToPlayer_Click" ToolTip="Volver al reproductor">
+                            <TextBlock Text="&#xE72B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" 
+                                       FontSize="13" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" 
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
                         <TextBlock x:Name="TxtSettingsTitle" Grid.Column="1" Text="Configuración" Foreground="#FFFFFF"
-                                   FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                   FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"/>
                     </Grid>
 
                     <!-- Opciones de configuración -->
                     <StackPanel Grid.Row="1">
                         <!-- Opción 1: Mostrar barra de volumen -->
                         <CheckBox x:Name="ChkShowVolumeBar" Content="Mostrar barra de volumen"
-                                  Foreground="#FFFFFF" FontSize="11" Cursor="Hand" Margin="2,0,0,10"
+                                  Foreground="#FFFFFF" FontSize="11" Cursor="Hand" Margin="2,0,0,12"
                                   Click="ChkShowVolumeBar_Click"/>
 
                         <!-- Opción 2: Dispositivo de salida de audio -->
                         <TextBlock x:Name="TxtAudioDeviceLabel" Text="Dispositivo de salida de audio:" Foreground="#A0A0A0" 
-                                   FontSize="10.5" Margin="2,0,0,3"/>
-                        <ComboBox x:Name="CmbAudioDevice" Style="{StaticResource DarkComboBoxStyle}" Height="26" Margin="0,0,0,10"
+                                   FontSize="10.5" Margin="2,0,0,4"/>
+                        <ComboBox x:Name="CmbAudioDevice" Style="{StaticResource DarkComboBoxStyle}" Height="28" Margin="0,0,0,12"
                                   SelectionChanged="CmbAudioDevice_SelectionChanged"/>
 
                         <!-- Opción 3: Pantalla del widget -->
                         <TextBlock x:Name="TxtMonitorLabel" Text="Pantalla del widget:" Foreground="#A0A0A0" 
-                                   FontSize="10.5" Margin="2,0,0,3"/>
-                        <ComboBox x:Name="CmbMonitor" Style="{StaticResource DarkComboBoxStyle}" Height="26"
+                   FontSize="10.5" Margin="2,0,0,4"/>
+                        <ComboBox x:Name="CmbMonitor" Style="{StaticResource DarkComboBoxStyle}" Height="28"
                                   SelectionChanged="CmbMonitor_SelectionChanged"/>
                     </StackPanel>
                 </Grid>
