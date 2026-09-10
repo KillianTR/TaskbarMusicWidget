@@ -54,17 +54,8 @@
     </Window.Resources>
 
     <Window.ContextMenu>
-        <ContextMenu x:Name="WidgetContextMenu" Background="#202020" Foreground="#FFFFFF" BorderBrush="#33FFFFFF"
-                     Opened="ContextMenu_Opened">
+        <ContextMenu x:Name="WidgetContextMenu" Background="#202020" Foreground="#FFFFFF" BorderBrush="#33FFFFFF">
             <MenuItem x:Name="MenuReconnectItem" Header="Reconectar reproductor" Click="MenuReconnect_Click"/>
-            <Separator Background="#33FFFFFF"/>
-            <MenuItem x:Name="MenuShowVolumeBarItem" Header="Mostrar barra de volumen" IsCheckable="True" Click="MenuShowVolumeBar_Click"/>
-            <MenuItem x:Name="MenuMonitorItem" Header="Pantalla">
-                <MenuItem x:Name="MenuMonAuto" Header="Automático (Pantalla completa)" Click="MenuMonAuto_Click"/>
-                <MenuItem x:Name="MenuMon1" Header="Pantalla 1 (Principal)" Click="MenuMon1_Click"/>
-                <MenuItem x:Name="MenuMon2" Header="Pantalla 2 (Secundaria)" Click="MenuMon2_Click"/>
-            </MenuItem>
-            <MenuItem x:Name="MenuAudioDeviceItem" Header="Dispositivo de salida de audio"/>
             <Separator Background="#33FFFFFF"/>
             <MenuItem x:Name="MenuExitItem" Header="Cerrar widget" Click="MenuExit_Click"/>
         </ContextMenu>
