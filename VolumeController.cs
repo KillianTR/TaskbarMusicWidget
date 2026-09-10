@@ -82,6 +82,10 @@ namespace TaskbarMusicWidget
                         nuevoVol = (float)(Math.Round(nuevoVol * 20.0) / 20.0);
 
                         Guid emptyGuid = Guid.Empty;
+                        if (delta > 0 && nuevoVol > 0)
+                        {
+                            epv.SetMute(false, ref emptyGuid);
+                        }
                         epv.SetMasterVolumeLevelScalar(nuevoVol, ref emptyGuid);
                         return (int)Math.Round(nuevoVol * 100.0f);
                     }
@@ -128,6 +132,10 @@ namespace TaskbarMusicWidget
                 try
                 {
                     Guid emptyGuid = Guid.Empty;
+                    if (level > 0)
+                    {
+                        epv.SetMute(false, ref emptyGuid);
+                    }
                     return epv.SetMasterVolumeLevelScalar(level, ref emptyGuid) == 0;
                 }
                 catch { }

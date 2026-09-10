@@ -16,6 +16,7 @@ namespace TaskbarMusicWidget
         private readonly MainWindow _mainWindow;
         private bool _isDraggingSlider = false;
         private bool _isUpdatingVolumeSliderInternally = false;
+        private int _volumeBeforeMute = 50;
 
         private const string PlayPathData = "M 3.5,2 L 12,7 L 3.5,12 Z";
         private const string PausePathData = "M 3,2 L 5.5,2 L 5.5,12 L 3,12 Z M 8.5,2 L 11,2 L 11,12 L 8.5,12 Z";
@@ -279,18 +280,50 @@ namespace TaskbarMusicWidget
             if (_isUpdatingVolumeSliderInternally || FlyoutVolumeSlider == null || TxtVolumePercent == null || MuteIconPath == null) return;
 
             int vol = (int)Math.Round(FlyoutVolumeSlider.Value);
+            
+            // Si estaba silenciado y el usuario mueve el slider a un volumen > 0, reactivar automáticamente
+            if (vol > 0 && VolumeController.EstaSilenciado())
+            {
+                VolumeController.AlternarSilencio();
+            }
+
             VolumeController.EstablecerVolumen((float)(vol / 100.0));
             TxtVolumePercent.Text = $"{vol}%";
+            if (vol > 0)
+            {
+                _volumeBeforeMute = vol;
+            }
 
-            bool isMuted = vol == 0;
+            bool isMuted = vol == 0 || VolumeController.EstaSilenciado();
             MuteIconPath.Data = Geometry.Parse(isMuted ? MutePathData : SpeakerPathData);
-            MuteIconPath.Fill = isMuted ? (SolidColorBrush)new BrushConverter().ConvertFrom("#E06060")! : (SolidColorBrush)new BrushConverter().ConvertFrom("#A0A0A0")!;
+            MuteIconPath.Fill = isMuted ? (SolidColorBrush)new BrushConverter().ConvertFrom("#E06060")! : (SolidColorBrush)new BrushConverter().ConvertFrom("#8E8E8E")!;
+            BtnFlyoutMute.ToolTip = isMuted ? (I18n.IsSpanish ? "Reactivar sonido" : "Unmute") : (I18n.IsSpanish ? "Silenciar" : "Mute");
         }
 
         private void BtnFlyoutMute_Click(object sender, RoutedEventArgs e)
         {
-            VolumeController.AlternarSilencio();
-            ActualizarEstadoVolumen();
+            bool wasMuted = VolumeController.EstaSilenciado();
+            int currentVol = VolumeController.ObtenerVolumenActual();
+
+            if (!wasMuted)
+            {
+                // Silenciar (Mute): guarda el volumen previo y pone la barra en 0% visualmente
+                // como en YouTube y Spotify. La música o vídeo sigue reproduciéndose en segundo plano sin pausarse
+                if (currentVol > 0)
+                {
+                    _volumeBeforeMute = currentVol;
+                }
+                VolumeController.AlternarSilencio();
+                ActualizarVolumen(0, isMutedParam: true);
+            }
+            else
+            {
+                // Reactivar sonido (Unmute): restaura el nivel previo
+                VolumeController.AlternarSilencio();
+                int restoreVol = _volumeBeforeMute > 0 ? _volumeBeforeMute : (currentVol > 0 ? currentVol : 50);
+                VolumeController.EstablecerVolumen((float)(restoreVol / 100.0));
+                ActualizarVolumen(restoreVol, isMutedParam: false);
+            }
         }
 
         public void ActualizarEstadoVolumen()
@@ -311,19 +344,21 @@ namespace TaskbarMusicWidget
             bool isMuted = isMutedParam ?? VolumeController.EstaSilenciado();
 
             _isUpdatingVolumeSliderInternally = true;
-            FlyoutVolumeSlider.Value = vol;
-            TxtVolumePercent.Text = $"{vol}%";
-
             if (isMuted || vol == 0)
             {
+                FlyoutVolumeSlider.Value = 0;
+                TxtVolumePercent.Text = "0%";
                 MuteIconPath.Data = Geometry.Parse(MutePathData);
                 MuteIconPath.Fill = (SolidColorBrush)new BrushConverter().ConvertFrom("#E06060")!;
                 BtnFlyoutMute.ToolTip = I18n.IsSpanish ? "Reactivar sonido" : "Unmute";
             }
             else
             {
+                FlyoutVolumeSlider.Value = vol;
+                TxtVolumePercent.Text = $"{vol}%";
+                _volumeBeforeMute = vol;
                 MuteIconPath.Data = Geometry.Parse(SpeakerPathData);
-                MuteIconPath.Fill = (SolidColorBrush)new BrushConverter().ConvertFrom("#A0A0A0")!;
+                MuteIconPath.Fill = (SolidColorBrush)new BrushConverter().ConvertFrom("#8E8E8E")!;
                 BtnFlyoutMute.ToolTip = I18n.IsSpanish ? "Silenciar" : "Mute";
             }
             _isUpdatingVolumeSliderInternally = false;

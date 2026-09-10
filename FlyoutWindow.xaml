@@ -98,7 +98,7 @@
                 <DropShadowEffect Color="#000000" BlurRadius="16" ShadowDepth="4" Opacity="0.45"/>
             </Border.Effect>
 
-            <Grid>
+            <Grid Grid.IsSharedSizeScope="True">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -225,9 +225,9 @@
                 <!-- Fila 3: Línea de tiempo / Barra de progreso estilo Spotify -->
                 <Grid Grid.Row="2" Margin="0,2,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SliderColLeft"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SliderColRight"/>
                     </Grid.ColumnDefinitions>
 
                     <TextBlock x:Name="TxtPosition" Grid.Column="0" Text="0:00" Foreground="#8E8E8E" 
@@ -248,17 +248,18 @@
                 </Grid>
 
                 <!-- Fila 4: Barra de volumen interactiva debajo del tiempo de la canción -->
-                <Grid x:Name="VolumeBarRow" Grid.Row="3" Margin="0,8,0,0">
+                <Grid x:Name="VolumeBarRow" Grid.Row="3" Margin="0,6,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SliderColLeft"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="SliderColRight"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Botón Silencio / Altavoz -->
                     <Button x:Name="BtnFlyoutMute" Style="{StaticResource FlyoutIconButton}"
-                            Width="26" Height="26" Margin="0,0,6,0" Click="BtnFlyoutMute_Click" ToolTip="Silenciar">
-                        <Path x:Name="MuteIconPath" Width="13" Height="13" Stretch="Uniform" Fill="#A0A0A0"
+                            Width="26" Height="26" Margin="0,0,6,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Click="BtnFlyoutMute_Click" ToolTip="Silenciar">
+                        <Path x:Name="MuteIconPath" Width="13" Height="13" Stretch="Uniform" Fill="#8E8E8E"
                               Data="M 3,5 L 0,5 L 0,11 L 3,11 L 7,15 L 7,1 L 3,5 Z M 9.5,4 C 10.8,5.1 11.5,6.5 11.5,8 C 11.5,9.5 10.8,10.9 9.5,12 L 8.5,10.8 C 9.4,9.9 10,8.8 10,8 C 10,7.2 9.4,6.1 8.5,5.2 L 9.5,4 Z M 11.5,1.5 C 13.5,3.2 14.5,5.5 14.5,8 C 14.5,10.5 13.5,12.8 11.5,14.5 L 10.5,13.2 C 12.2,11.8 13,9.9 13,8 C 13,6.1 12.2,4.2 10.5,2.8 L 11.5,1.5 Z"/>
                     </Button>
 
@@ -271,10 +272,10 @@
                             PreviewMouseDown="FlyoutVolumeSlider_PreviewMouseDown"
                             ValueChanged="FlyoutVolumeSlider_ValueChanged"/>
 
-                    <!-- Porcentaje exacto de volumen (ej. "45%") -->
-                    <TextBlock x:Name="TxtVolumePercent" Grid.Column="2" Text="50%" Foreground="#FFFFFF" 
-                               FontSize="10.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" 
-                               MinWidth="28" TextAlignment="Right"/>
+                    <!-- Porcentaje exacto de volumen con el MISMO tamaño de números que la línea de tiempo (9.5) -->
+                    <TextBlock x:Name="TxtVolumePercent" Grid.Column="2" Text="50%" Foreground="#8E8E8E" 
+                               FontSize="9.5" VerticalAlignment="Center" Margin="6,0,0,0" 
+                               MinWidth="26" TextAlignment="Left"/>
                 </Grid>
             </Grid>
         </Border>
