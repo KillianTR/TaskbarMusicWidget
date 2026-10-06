@@ -51,6 +51,12 @@ namespace TaskbarMusicWidget
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "TaskbarMusicWidget", "Avatars");
 
+        private static readonly ConcurrentDictionary<string, ImageSource> _youtubeThumbnailCache = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly string _thumbCacheDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TaskbarMusicWidget", "Thumbnails");
+        private int _lastTrayLeft = -1;
+
         static MainWindow()
         {
             try
@@ -64,6 +70,9 @@ namespace TaskbarMusicWidget
         #region Win32 API
         [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string? className, string? windowTitle);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -317,6 +326,20 @@ namespace TaskbarMusicWidget
                 SetWindowPos(handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             }
 
+            // 1.5. Reposicionar dinámicamente si la bandeja del sistema cambia de posición o tamaño (por ejemplo icono de actualización de Windows)
+            IntPtr hTb = FindWindow("Shell_TrayWnd", null);
+            if (hTb != IntPtr.Zero)
+            {
+                IntPtr hNt = FindWindowEx(hTb, IntPtr.Zero, "TrayNotifyWnd", null);
+                if (hNt != IntPtr.Zero && GetWindowRect(hNt, out RECT currTrayRect))
+                {
+                    if (currTrayRect.Left != _lastTrayLeft && _lastTrayLeft != -1)
+                    {
+                        PosicionarEnBarra();
+                    }
+                }
+            }
+
             // 2. Operaciones periódicas de temporizador (cada ~1 segundo)
             var now = DateTime.Now;
             if ((now - _lastTimelineTick).TotalMilliseconds >= 950)
@@ -378,33 +401,80 @@ namespace TaskbarMusicWidget
                     }
                 }
 
-                // 2. Comprobar si hay una aplicación en primer plano en pantalla completa (juegos, vídeos en YouTube/Netflix, etc.)
-                IntPtr fg = GetForegroundWindow();
-                if (fg != IntPtr.Zero && fg != hTaskbar && fg != myHandle)
-                {
-                    IntPtr flyoutHandle = _flyoutWindow != null ? new WindowInteropHelper(_flyoutWindow).Handle : IntPtr.Zero;
-                    if (fg == flyoutHandle) return false;
+                IntPtr flyoutHandle = _flyoutWindow != null ? new WindowInteropHelper(_flyoutWindow).Handle : IntPtr.Zero;
 
+                // 2. Comprobar si hay una aplicación en primer plano en pantalla completa (juegos, vídeos en YouTube/Netflix/Prime Video, etc.)
+                IntPtr fg = GetForegroundWindow();
+                if (fg != IntPtr.Zero && fg != hTaskbar && fg != myHandle && fg != flyoutHandle)
+                {
                     var sb = new StringBuilder(128);
                     GetClassName(fg, sb, sb.Capacity);
                     string cls = sb.ToString();
 
                     // Descartar escritorio y ventanas auxiliares de Windows
                     if (cls != "Progman" && cls != "WorkerW" && cls != "Shell_TrayWnd" && 
+                        cls != "Shell_SecondaryTrayWnd" &&
                         cls != "Windows.UI.Core.CoreWindow" && cls != "Xaml_WindowedPopupClass")
                     {
                         if (GetWindowRect(fg, out RECT fgRect))
                         {
                             // Si la ventana activa cubre o sobrepasa toda el área del monitor
-                            if (fgRect.Left <= mi.rcMonitor.Left &&
-                                fgRect.Top <= mi.rcMonitor.Top &&
-                                fgRect.Right >= mi.rcMonitor.Right &&
-                                fgRect.Bottom >= mi.rcMonitor.Bottom)
+                            if (fgRect.Left <= mi.rcMonitor.Left + 2 &&
+                                fgRect.Top <= mi.rcMonitor.Top + 2 &&
+                                fgRect.Right >= mi.rcMonitor.Right - 2 &&
+                                fgRect.Bottom >= mi.rcMonitor.Bottom - 2)
                             {
                                 return true;
                             }
                         }
                     }
+                }
+
+                // 3. Comprobar si CUALQUIER ventana visible en este monitor está en pantalla completa
+                // (por ejemplo Prime Video, Netflix, VLC o un videojuego en segundo plano mientras el usuario interactúa en el otro monitor)
+                bool hayVentanaPantallaCompleta = false;
+                EnumWindows((hWnd, lParam) =>
+                {
+                    if (hWnd == myHandle || hWnd == flyoutHandle || hWnd == hTaskbar)
+                        return true;
+
+                    if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
+                        return true;
+
+                    int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+                    if ((exStyle & 0x00000020) != 0) // WS_EX_TRANSPARENT (overlays)
+                        return true;
+
+                    var sbCls = new StringBuilder(128);
+                    GetClassName(hWnd, sbCls, sbCls.Capacity);
+                    string c = sbCls.ToString();
+
+                    if (c == "Progman" || c == "WorkerW" || c == "Shell_TrayWnd" ||
+                        c == "Shell_SecondaryTrayWnd" || c == "Windows.UI.Core.CoreWindow" ||
+                        c == "Xaml_WindowedPopupClass" || c == "EdgeUiInputTopWndClass")
+                    {
+                        return true;
+                    }
+
+                    if (GetWindowRect(hWnd, out RECT r))
+                    {
+                        // Si la ventana cubre completamente el monitor donde reside el widget (tolerando 2px de bordes)
+                        if (r.Left <= mi.rcMonitor.Left + 2 &&
+                            r.Top <= mi.rcMonitor.Top + 2 &&
+                            r.Right >= mi.rcMonitor.Right - 2 &&
+                            r.Bottom >= mi.rcMonitor.Bottom - 2)
+                        {
+                            hayVentanaPantallaCompleta = true;
+                            return false; // Detener enumeración
+                        }
+                    }
+
+                    return true;
+                }, IntPtr.Zero);
+
+                if (hayVentanaPantallaCompleta)
+                {
+                    return true;
                 }
             }
             catch
@@ -415,17 +485,82 @@ namespace TaskbarMusicWidget
             return false;
         }
 
+        private static bool HayActualizacionWindowsPendiente()
+        {
+            try
+            {
+                using var k1 = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired");
+                if (k1 != null) return true;
+                using var k2 = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\WindowsUpdate\Orchestrator\RebootRequired");
+                if (k2 != null) return true;
+                using var k3 = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending");
+                if (k3 != null) return true;
+                using var k4 = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\WindowsUpdate\UX\Settings");
+                if (k4 != null)
+                {
+                    object? reboot = k4.GetValue("RebootPending");
+                    if (reboot is int r && r == 1) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
         private void PosicionarEnBarra()
         {
-            double screenWidth = SystemParameters.PrimaryScreenWidth;
-            double workAreaBottom = SystemParameters.WorkArea.Bottom;
-            double screenHeight = SystemParameters.PrimaryScreenHeight;
-            double taskbarHeight = screenHeight - workAreaBottom;
-            if (taskbarHeight <= 0) taskbarHeight = 48;
+            try
+            {
+                double screenWidth = SystemParameters.PrimaryScreenWidth;
+                double workAreaBottom = SystemParameters.WorkArea.Bottom;
+                double screenHeight = SystemParameters.PrimaryScreenHeight;
+                double taskbarHeight = screenHeight - workAreaBottom;
+                if (taskbarHeight <= 0) taskbarHeight = 48;
 
-            // Mantenerse a la izquierda de la bandeja del sistema
-            this.Left = screenWidth - this.Width - 260;
-            this.Top = workAreaBottom + ((taskbarHeight - this.Height) / 2);
+                // Base por defecto: 260px a la izquierda del borde derecho
+                double baseLeft = screenWidth - this.Width - 260;
+
+                // Detectar dinámicamente la posición real de la bandeja del sistema (TrayNotifyWnd)
+                IntPtr hTaskbar = FindWindow("Shell_TrayWnd", null);
+                if (hTaskbar != IntPtr.Zero)
+                {
+                    IntPtr hNotify = FindWindowEx(hTaskbar, IntPtr.Zero, "TrayNotifyWnd", null);
+                    if (hNotify != IntPtr.Zero && GetWindowRect(hNotify, out RECT nRect))
+                    {
+                        _lastTrayLeft = nRect.Left;
+
+                        var source = PresentationSource.FromVisual(this);
+                        double dpiScale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                        double trayLeftDips = nRect.Left / dpiScale;
+                        double trayWidthDips = (nRect.Right - nRect.Left) / dpiScale;
+
+                        // Margen de separación respecto al extremo izquierdo de la bandeja
+                        double trayBasedLeft = trayLeftDips - this.Width - 16;
+
+                        // Si la bandeja está ensanchada (>215px) por el icono de actualización de Windows o notificaciones,
+                        // o si el sistema reporta actualización pendiente, desplazamos el widget más a la izquierda
+                        bool updatePending = HayActualizacionWindowsPendiente();
+                        if (trayWidthDips > 215 || updatePending)
+                        {
+                            this.Left = Math.Min(baseLeft - 50, trayBasedLeft);
+                        }
+                        else
+                        {
+                            this.Left = Math.Min(baseLeft, trayBasedLeft);
+                        }
+
+                        this.Top = workAreaBottom + ((taskbarHeight - this.Height) / 2);
+                        return;
+                    }
+                }
+
+                // Fallback estándar si no se puede leer la bandeja
+                this.Left = baseLeft;
+                this.Top = workAreaBottom + ((taskbarHeight - this.Height) / 2);
+            }
+            catch
+            {
+                this.Left = SystemParameters.PrimaryScreenWidth - this.Width - 260;
+            }
         }
 
         private async void ConectarSesion()
@@ -654,7 +789,7 @@ namespace TaskbarMusicWidget
             return I18n.PlayingFallback;
         }
 
-        #region Detección y Carátulas para YouTube Shorts
+        #region Detección y Carátulas para YouTube y YouTube Shorts
         private static bool EsNavegador(string? appModelId)
         {
             if (string.IsNullOrEmpty(appModelId)) return false;
@@ -692,6 +827,72 @@ namespace TaskbarMusicWidget
             return false;
         }
 
+        private static bool EsSesionYouTube(string? appModelId, string? title, string? artist, string? albumTitle)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return false;
+
+            if (title.Contains("YouTube", StringComparison.OrdinalIgnoreCase) ||
+                artist?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true ||
+                albumTitle?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return true;
+            }
+
+            if (title.Contains("#shorts", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("#short", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (EsNavegador(appModelId))
+            {
+                try
+                {
+                    bool foundYouTube = false;
+                    EnumWindows((hWnd, lParam) =>
+                    {
+                        if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
+                        var sb = new StringBuilder(256);
+                        GetWindowText(hWnd, sb, sb.Capacity);
+                        string wTitle = sb.ToString();
+                        if (wTitle.Contains("YouTube", StringComparison.OrdinalIgnoreCase))
+                        {
+                            GetWindowThreadProcessId(hWnd, out uint pid);
+                            try
+                            {
+                                var proc = Process.GetProcessById((int)pid);
+                                if (proc != null && EsNavegador(proc.ProcessName))
+                                {
+                                    foundYouTube = true;
+                                    return false;
+                                }
+                            }
+                            catch { }
+                        }
+                        return true;
+                    }, IntPtr.Zero);
+
+                    if (foundYouTube) return true;
+                }
+                catch { }
+            }
+
+            return false;
+        }
+
+        private static string LimpiarTituloParaBusquedaYouTube(string rawTitle)
+        {
+            if (string.IsNullOrWhiteSpace(rawTitle)) return "";
+            string clean = rawTitle.Trim();
+            // Quitar badge de notificaciones de pestañas en navegadores como (1), (99+)
+            clean = Regex.Replace(clean, @"^\(\d+\+?\)\s*", "");
+            // Quitar sufijo "- YouTube"
+            clean = Regex.Replace(clean, @"\s*-\s*YouTube$", "", RegexOptions.IgnoreCase);
+            // Quitar etiquetas #shorts
+            clean = Regex.Replace(clean, @"#shorts?", "", RegexOptions.IgnoreCase);
+            return clean.Trim();
+        }
+
         private static bool TryObtenerLogoCanalYouTubeEnCache(string channelName, out ImageSource? logo)
         {
             logo = null;
@@ -719,6 +920,43 @@ namespace TaskbarMusicWidget
                         if (logo != null)
                         {
                             _channelAvatarCache[channelName] = logo;
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return false;
+        }
+
+        private static bool TryObtenerThumbnailYouTubeEnCache(string titleKey, out ImageSource? cover)
+        {
+            cover = null;
+            if (string.IsNullOrWhiteSpace(titleKey)) return false;
+
+            titleKey = titleKey.Trim();
+
+            // 1. Comprobar caché en memoria
+            if (_youtubeThumbnailCache.TryGetValue(titleKey, out cover) && cover != null)
+            {
+                return true;
+            }
+
+            // 2. Comprobar caché persistente en disco
+            try
+            {
+                string safeFileName = Regex.Replace(titleKey, @"[^\w\-\.]", "_") + ".jpg";
+                string cachePath = Path.Combine(_thumbCacheDir, safeFileName);
+                if (File.Exists(cachePath))
+                {
+                    byte[] fileBytes = File.ReadAllBytes(cachePath);
+                    if (fileBytes != null && fileBytes.Length > 0)
+                    {
+                        cover = CrearBitmapDesdeBytes(fileBytes);
+                        if (cover != null)
+                        {
+                            _youtubeThumbnailCache[titleKey] = cover;
                             return true;
                         }
                     }
@@ -836,6 +1074,136 @@ namespace TaskbarMusicWidget
             }
             catch { }
         }
+
+        private static async Task<(ImageSource? Cover, string? ChannelName)> ObtenerThumbnailVideoYouTubeAsync(string cleanTitle, string artist)
+        {
+            if (string.IsNullOrWhiteSpace(cleanTitle)) return (null, null);
+
+            if (TryObtenerThumbnailYouTubeEnCache(cleanTitle, out var cached) && cached != null)
+            {
+                return (cached, null);
+            }
+
+            try
+            {
+                string query = cleanTitle;
+                if (!string.IsNullOrWhiteSpace(artist) &&
+                    !artist.Contains("YouTube", StringComparison.OrdinalIgnoreCase) &&
+                    !artist.Contains("Opera", StringComparison.OrdinalIgnoreCase) &&
+                    !artist.Contains("Chrome", StringComparison.OrdinalIgnoreCase) &&
+                    !artist.Contains("Edge", StringComparison.OrdinalIgnoreCase))
+                {
+                    query += " " + artist;
+                }
+
+                string searchUrl = $"https://www.youtube.com/results?search_query={Uri.EscapeDataString(query)}";
+                var response = await _httpClient.GetAsync(searchUrl);
+                if (!response.IsSuccessStatusCode) return (null, null);
+
+                string html = await response.Content.ReadAsStringAsync();
+
+                // Extraer el nombre del canal si es posible
+                string? detectedChannel = null;
+                var chMatch = Regex.Match(html, @"\""ownerText\""\s*:\s*\{\s*\""runs\""\s*:\s*\[\s*\{\s*\""text\""\s*:\s*\""([^\""]+)\""");
+                if (chMatch.Success)
+                {
+                    detectedChannel = chMatch.Groups[1].Value;
+                }
+
+                // Extraer videoId del vídeo en los resultados
+                var match = Regex.Match(html, @"\""videoId\""\s*:\s*\""([a-zA-Z0-9_-]{11})\""");
+                if (!match.Success)
+                {
+                    match = Regex.Match(html, @"/watch\?v=([a-zA-Z0-9_-]{11})");
+                }
+
+                if (match.Success)
+                {
+                    string videoId = match.Groups[1].Value;
+
+                    byte[]? imgBytes = null;
+                    // Probar primero con maxresdefault.jpg (1280x720) y luego hqdefault.jpg (480x360)
+                    try
+                    {
+                        var maxResResp = await _httpClient.GetAsync($"https://i.ytimg.com/vi/{videoId}/maxresdefault.jpg");
+                        if (maxResResp.IsSuccessStatusCode)
+                        {
+                            byte[] candidate = await maxResResp.Content.ReadAsByteArrayAsync();
+                            if (candidate != null && candidate.Length > 2000)
+                            {
+                                imgBytes = candidate;
+                            }
+                        }
+                    }
+                    catch { }
+
+                    if (imgBytes == null || imgBytes.Length == 0)
+                    {
+                        try
+                        {
+                            imgBytes = await _httpClient.GetByteArrayAsync($"https://i.ytimg.com/vi/{videoId}/hqdefault.jpg");
+                        }
+                        catch { }
+                    }
+
+                    if (imgBytes != null && imgBytes.Length > 0)
+                    {
+                        var bmp = CrearBitmapDesdeBytes(imgBytes);
+                        if (bmp != null)
+                        {
+                            _youtubeThumbnailCache[cleanTitle] = bmp;
+
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    if (!Directory.Exists(_thumbCacheDir))
+                                    {
+                                        Directory.CreateDirectory(_thumbCacheDir);
+                                    }
+                                    string safeFileName = Regex.Replace(cleanTitle, @"[^\w\-\.]", "_") + ".jpg";
+                                    string cachePath = Path.Combine(_thumbCacheDir, safeFileName);
+                                    await File.WriteAllBytesAsync(cachePath, imgBytes);
+                                }
+                                catch { }
+                            });
+
+                            return (bmp, detectedChannel);
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return (null, null);
+        }
+
+        private async Task CargarThumbnailYouTubeAsync(string cleanTitle, string artist)
+        {
+            try
+            {
+                var (thumb, channel) = await ObtenerThumbnailVideoYouTubeAsync(cleanTitle, artist);
+                if (thumb != null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (_currentTitle == cleanTitle)
+                        {
+                            _currentCover = thumb;
+                            AlbumArt.Source = thumb;
+                            if (!string.IsNullOrWhiteSpace(channel) && (_currentArtist == "Artista desconocido" || _currentArtist == "YouTube"))
+                            {
+                                _currentArtist = channel;
+                                TxtArtist.Text = _currentArtist;
+                                TxtArtist.ToolTip = _currentArtist;
+                            }
+                            _flyoutWindow?.UpdateTrackInfo(_currentCover, _currentTitle, _currentArtist, _isPlaying);
+                        }
+                    });
+                }
+            }
+            catch { }
+        }
         #endregion
 
         private async void RefrescarDatos()
@@ -865,11 +1233,6 @@ namespace TaskbarMusicWidget
                         _currentArtist = string.IsNullOrWhiteSpace(props.Artist) ? "Artista desconocido" : props.Artist;
                     }
 
-                    TxtTitle.Text = _currentTitle;
-                    TxtArtist.Text = _currentArtist;
-                    TxtTitle.ToolTip = _currentTitle;
-                    TxtArtist.ToolTip = _currentArtist;
-
                     BitmapImage? bmp = null;
                     if (props.Thumbnail != null)
                     {
@@ -889,7 +1252,23 @@ namespace TaskbarMusicWidget
                     }
 
                     bool isBrowser = EsNavegador(_currentSession.SourceAppUserModelId);
-                    bool isShort = EsYouTubeShort(_currentTitle, bmp?.PixelWidth ?? 0, bmp?.PixelHeight ?? 0, isBrowser);
+                    bool isYouTube = !isNetflix && EsSesionYouTube(_currentSession.SourceAppUserModelId, _currentTitle, _currentArtist, props.AlbumTitle);
+                    bool isShort = isYouTube && EsYouTubeShort(_currentTitle, bmp?.PixelWidth ?? 0, bmp?.PixelHeight ?? 0, isBrowser);
+
+                    if (isYouTube)
+                    {
+                        // Limpiar título de YouTube para remover sufijos molestos como " - YouTube" o contadores de pestañas "(1) "
+                        string cleanTitle = LimpiarTituloParaBusquedaYouTube(_currentTitle);
+                        if (!string.IsNullOrEmpty(cleanTitle))
+                        {
+                            _currentTitle = cleanTitle;
+                        }
+                    }
+
+                    TxtTitle.Text = _currentTitle;
+                    TxtArtist.Text = _currentArtist;
+                    TxtTitle.ToolTip = _currentTitle;
+                    TxtArtist.ToolTip = _currentArtist;
 
                     if (isShort && !string.IsNullOrWhiteSpace(_currentArtist))
                     {
@@ -905,6 +1284,22 @@ namespace TaskbarMusicWidget
                             _currentCover = bmp;
                             AlbumArt.Source = bmp;
                             _ = CargarLogoCanalAsync(canal, _currentTitle);
+                        }
+                    }
+                    else if (isYouTube && !isShort)
+                    {
+                        string titleKey = _currentTitle;
+                        if (TryObtenerThumbnailYouTubeEnCache(titleKey, out var ytCached) && ytCached != null)
+                        {
+                            _currentCover = ytCached;
+                            AlbumArt.Source = ytCached;
+                        }
+                        else
+                        {
+                            // Mostramos el thumbnail de SMTC temporalmente si existe mientras se descarga la miniatura oficial
+                            _currentCover = bmp;
+                            AlbumArt.Source = bmp;
+                            _ = CargarThumbnailYouTubeAsync(titleKey, _currentArtist);
                         }
                     }
                     else if (bmp != null)
