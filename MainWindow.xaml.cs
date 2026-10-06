@@ -377,6 +377,44 @@ namespace TaskbarMusicWidget
             return list;
         }
 
+        private static bool EsVentanaSuperpuestaOIgnorable(string cls, string title, int exStyle)
+        {
+            // Ignorar ventanas de herramientas / tool windows
+            if ((exStyle & 0x00000080) != 0) // WS_EX_TOOLWINDOW
+                return true;
+
+            // Ignorar ventanas transparentes al ratón / click-through
+            if ((exStyle & 0x00000020) != 0) // WS_EX_TRANSPARENT
+                return true;
+
+            // Ignorar elementos del sistema de Windows / escritorio
+            if (cls == "Progman" || cls == "WorkerW" || cls == "Shell_TrayWnd" ||
+                cls == "Shell_SecondaryTrayWnd" || cls == "Windows.UI.Core.CoreWindow" ||
+                cls == "Xaml_WindowedPopupClass" || cls == "EdgeUiInputTopWndClass" ||
+                cls == "DesktopWindowXamlSource" || cls == "SysListView32")
+            {
+                return true;
+            }
+
+            // Ignorar overlays gráficos y de captura (NVIDIA GeForce Overlay, Discord, Steam, GameBar, OBS, etc.)
+            if (cls.Contains("CEF-OSC-WIDGET", StringComparison.OrdinalIgnoreCase) ||
+                cls.Contains("Overlay", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("NVIDIA GeForce Overlay", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("GeForce Overlay", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("NVIDIA Share", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("Discord Overlay", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("Steam Overlay", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("Xbox Game Bar", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("Game Bar", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("RTSS", StringComparison.OrdinalIgnoreCase) ||
+                title.Contains("RivaTuner", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         private bool MonitorTienePantallaCompleta(RECT rcMon, IntPtr myHandle, IntPtr flyoutHandle, IntPtr hTaskbar)
         {
             // 1. Comprobar si la ventana activa en primer plano cubre este monitor
@@ -386,13 +424,16 @@ namespace TaskbarMusicWidget
                 int hrFg = DwmGetWindowAttribute(fg, DWMWA_CLOAKED, out int isCloakedFg, sizeof(int));
                 if (hrFg != 0 || isCloakedFg == 0)
                 {
-                    var sb = new StringBuilder(128);
-                    GetClassName(fg, sb, sb.Capacity);
-                    string cls = sb.ToString();
+                    int exStyleFg = GetWindowLong(fg, GWL_EXSTYLE);
+                    var sbClsFg = new StringBuilder(128);
+                    GetClassName(fg, sbClsFg, sbClsFg.Capacity);
+                    string clsFg = sbClsFg.ToString();
 
-                    if (cls != "Progman" && cls != "WorkerW" && cls != "Shell_TrayWnd" &&
-                        cls != "Shell_SecondaryTrayWnd" && cls != "Windows.UI.Core.CoreWindow" &&
-                        cls != "Xaml_WindowedPopupClass")
+                    var sbTitleFg = new StringBuilder(128);
+                    GetWindowText(fg, sbTitleFg, sbTitleFg.Capacity);
+                    string titleFg = sbTitleFg.ToString();
+
+                    if (!EsVentanaSuperpuestaOIgnorable(clsFg, titleFg, exStyleFg))
                     {
                         if (GetWindowRect(fg, out RECT fgRect))
                         {
@@ -423,16 +464,15 @@ namespace TaskbarMusicWidget
                     return true;
 
                 int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-                if ((exStyle & 0x00000020) != 0) // WS_EX_TRANSPARENT
-                    return true;
-
                 var sbCls = new StringBuilder(128);
                 GetClassName(hWnd, sbCls, sbCls.Capacity);
                 string c = sbCls.ToString();
 
-                if (c == "Progman" || c == "WorkerW" || c == "Shell_TrayWnd" ||
-                    c == "Shell_SecondaryTrayWnd" || c == "Windows.UI.Core.CoreWindow" ||
-                    c == "Xaml_WindowedPopupClass" || c == "EdgeUiInputTopWndClass")
+                var sbTitle = new StringBuilder(128);
+                GetWindowText(hWnd, sbTitle, sbTitle.Capacity);
+                string t = sbTitle.ToString();
+
+                if (EsVentanaSuperpuestaOIgnorable(c, t, exStyle))
                 {
                     return true;
                 }
@@ -584,8 +624,8 @@ namespace TaskbarMusicWidget
                 double taskbarHeightDips = (mon1.rcMonitor.Bottom - mon1.rcWork.Bottom) / dpiScale;
                 if (taskbarHeightDips <= 0) taskbarHeightDips = 48;
 
-                // Base por defecto: 260px a la izquierda del borde derecho
-                double baseLeft = (mon1.rcMonitor.Left / dpiScale) + mon1WidthDips - this.Width - 260;
+                // Base por defecto: 280px a la izquierda del borde derecho
+                double baseLeft = (mon1.rcMonitor.Left / dpiScale) + mon1WidthDips - this.Width - 280;
 
                 // Detectar dinámicamente TrayNotifyWnd
                 IntPtr hTaskbar = FindWindow("Shell_TrayWnd", null);
@@ -599,7 +639,7 @@ namespace TaskbarMusicWidget
                         double trayWidthDips = (nRect.Right - nRect.Left) / dpiScale;
 
                         bool updatePending = HayActualizacionWindowsPendiente();
-                        double offsetMargin = (trayWidthDips > 185 || updatePending) ? 65 : 16;
+                        double offsetMargin = (trayWidthDips > 185 || updatePending) ? 70 : 26;
                         double trayBasedLeft = trayLeftDips - this.Width - offsetMargin;
 
                         if (trayWidthDips > 185 || updatePending)
@@ -622,7 +662,7 @@ namespace TaskbarMusicWidget
             }
             catch
             {
-                this.Left = SystemParameters.PrimaryScreenWidth - this.Width - 260;
+                this.Left = SystemParameters.PrimaryScreenWidth - this.Width - 280;
             }
         }
 
@@ -638,8 +678,8 @@ namespace TaskbarMusicWidget
                 double taskbarHeightDips = (mon2.rcMonitor.Bottom - mon2.rcWork.Bottom) / dpiScale;
                 if (taskbarHeightDips <= 0) taskbarHeightDips = 48;
 
-                // En la barra de tareas secundaria de Windows, situarse a la izquierda del reloj/borde derecho
-                this.Left = mon2RightDips - this.Width - 110;
+                // En la barra de tareas secundaria de Windows, situarse a la izquierda con separación holgada de la fecha y hora
+                this.Left = mon2RightDips - this.Width - 170;
                 this.Top = mon2WorkBottomDips + ((taskbarHeightDips - this.Height) / 2);
             }
             catch { }
