@@ -387,6 +387,10 @@ namespace TaskbarMusicWidget
             if ((exStyle & 0x00000020) != 0) // WS_EX_TRANSPARENT
                 return true;
 
+            // Ignorar ventanas sin título (los vídeos y videojuegos a pantalla completa SIEMPRE tienen título)
+            if (string.IsNullOrWhiteSpace(title))
+                return true;
+
             // Ignorar elementos del sistema de Windows / escritorio
             if (cls == "Progman" || cls == "WorkerW" || cls == "Shell_TrayWnd" ||
                 cls == "Shell_SecondaryTrayWnd" || cls == "Windows.UI.Core.CoreWindow" ||
@@ -523,31 +527,20 @@ namespace TaskbarMusicWidget
 
                 if (_modoMonitor == ModoMonitor.Pantalla2)
                 {
-                    if (hayMon2 && !mon2EnPantallaCompleta)
-                    {
-                        targetMonitor = 2;
-                    }
-                    else
-                    {
-                        OcultarWidget();
-                        return;
-                    }
+                    // Forzado manual en Pantalla 2
+                    targetMonitor = hayMon2 ? 2 : 1;
                 }
                 else if (_modoMonitor == ModoMonitor.Pantalla1)
                 {
-                    if (mon1EnPantallaCompleta)
-                    {
-                        OcultarWidget();
-                        return;
-                    }
+                    // Forzado manual en Pantalla 1
                     targetMonitor = 1;
                 }
                 else // ModoMonitor.Automatico
                 {
                     if (mon1EnPantallaCompleta)
                     {
-                        // Monitor 1 tiene pantalla completa (Prime Video, juego, vídeo o HDMI).
-                        // Si hay un monitor 2 disponible y sin pantalla completa, nos movemos a la barra del monitor 2!
+                        // Monitor 1 tiene pantalla completa (Prime Video, juego, etc.).
+                        // Si hay un monitor 2 disponible, nos movemos a la barra del monitor 2!
                         if (hayMon2 && !mon2EnPantallaCompleta)
                         {
                             targetMonitor = 2;
@@ -560,6 +553,7 @@ namespace TaskbarMusicWidget
                     }
                     else
                     {
+                        // Pantalla 1 libre: SIEMPRE en Pantalla 1
                         targetMonitor = 1;
                     }
                 }
@@ -598,7 +592,14 @@ namespace TaskbarMusicWidget
                     this.Visibility = Visibility.Visible;
                 }
 
-                SetWindowPos(myHandle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                var source = PresentationSource.FromVisual(this);
+                double dpiScale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                int xPx = (int)Math.Round(this.Left * dpiScale);
+                int yPx = (int)Math.Round(this.Top * dpiScale);
+                int wPx = (int)Math.Round(this.Width * dpiScale);
+                int hPx = (int)Math.Round(this.Height * dpiScale);
+
+                SetWindowPos(myHandle, HWND_TOPMOST, xPx, yPx, wPx, hPx, SWP_NOACTIVATE | SWP_SHOWWINDOW);
             }
             catch { }
         }
