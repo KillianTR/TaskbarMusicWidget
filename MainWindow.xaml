@@ -57,6 +57,12 @@
         <ContextMenu x:Name="WidgetContextMenu" Background="#202020" Foreground="#FFFFFF" BorderBrush="#33FFFFFF">
             <MenuItem x:Name="MenuReconnectItem" Header="Reconectar reproductor" Click="MenuReconnect_Click"/>
             <Separator Background="#33FFFFFF"/>
+            <MenuItem x:Name="MenuMonitorItem" Header="Pantalla / Monitor">
+                <MenuItem x:Name="MenuMonitorAuto" Header="Automático (Pantalla 2 si hay pantalla completa)" IsCheckable="True" IsChecked="True" Click="MenuMonitorAuto_Click"/>
+                <MenuItem x:Name="MenuMonitor1" Header="Pantalla 1 (Principal)" IsCheckable="True" Click="MenuMonitor1_Click"/>
+                <MenuItem x:Name="MenuMonitor2" Header="Pantalla 2 (HDMI / Secundaria)" IsCheckable="True" Click="MenuMonitor2_Click"/>
+            </MenuItem>
+            <Separator Background="#33FFFFFF"/>
             <MenuItem x:Name="MenuExitItem" Header="Cerrar widget" Click="MenuExit_Click"/>
         </ContextMenu>
     </Window.ContextMenu>

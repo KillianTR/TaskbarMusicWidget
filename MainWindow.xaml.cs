@@ -185,6 +185,10 @@ namespace TaskbarMusicWidget
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
+        private const int DWMWA_CLOAKED = 14;
+
         [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
         private const uint MONITOR_DEFAULTTONEAREST = 2;
@@ -192,6 +196,10 @@ namespace TaskbarMusicWidget
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumDelegate lpfnEnum, IntPtr dwData);
+        private delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
@@ -211,6 +219,14 @@ namespace TaskbarMusicWidget
             public uint dwFlags;
         }
         #endregion
+
+        private enum ModoMonitor
+        {
+            Automatico = 0,
+            Pantalla1 = 1,
+            Pantalla2 = 2
+        }
+        private ModoMonitor _modoMonitor = ModoMonitor.Automatico;
 
         private DispatcherTimer? _volumeToastTimer;
         private DateTime _lastTimelineTick = DateTime.Now;
@@ -296,48 +312,20 @@ namespace TaskbarMusicWidget
             if (AlbumArtBorder != null) AlbumArtBorder.ToolTip = I18n.OpenPlayerTooltip;
             if (TrackInfoPanel != null) TrackInfoPanel.ToolTip = I18n.OpenPlayerTooltip;
             if (MenuReconnectItem != null) MenuReconnectItem.Header = I18n.MenuReconnect;
+            if (MenuMonitorItem != null) MenuMonitorItem.Header = I18n.MenuMonitor;
+            if (MenuMonitorAuto != null) MenuMonitorAuto.Header = I18n.MenuMonitorAuto;
+            if (MenuMonitor1 != null) MenuMonitor1.Header = I18n.MenuMonitor1;
+            if (MenuMonitor2 != null) MenuMonitor2.Header = I18n.MenuMonitor2;
             if (MenuExitItem != null) MenuExitItem.Header = I18n.MenuExit;
         }
 
         private void WatchdogTimer_Tick(object? sender, EventArgs e)
         {
-            // 1. Detectar si la barra de tareas está oculta o hay juego/vídeo en pantalla completa
-            if (DebeOcultarse())
+            // 1. Gestionar visibilidad y monitor activo (Pantalla 1 o Pantalla 2 ante pantalla completa/HDMI)
+            ActualizarUbicacionYVisibilidad();
+            if (this.Visibility == Visibility.Collapsed)
             {
-                if (this.Visibility != Visibility.Collapsed)
-                {
-                    this.Visibility = Visibility.Collapsed;
-                    _flyoutWindow?.HideFlyout();
-                }
                 return;
-            }
-            else
-            {
-                if (this.Visibility != Visibility.Visible)
-                {
-                    this.Visibility = Visibility.Visible;
-                }
-            }
-
-            // Reasegurar que el widget permanece al frente si la barra es visible
-            IntPtr handle = new WindowInteropHelper(this).Handle;
-            if (handle != IntPtr.Zero)
-            {
-                SetWindowPos(handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-            }
-
-            // 1.5. Reposicionar dinámicamente si la bandeja del sistema cambia de posición o tamaño (por ejemplo icono de actualización de Windows)
-            IntPtr hTb = FindWindow("Shell_TrayWnd", null);
-            if (hTb != IntPtr.Zero)
-            {
-                IntPtr hNt = FindWindowEx(hTb, IntPtr.Zero, "TrayNotifyWnd", null);
-                if (hNt != IntPtr.Zero && GetWindowRect(hNt, out RECT currTrayRect))
-                {
-                    if (currTrayRect.Left != _lastTrayLeft && _lastTrayLeft != -1)
-                    {
-                        PosicionarEnBarra();
-                    }
-                }
             }
 
             // 2. Operaciones periódicas de temporizador (cada ~1 segundo)
@@ -368,127 +356,309 @@ namespace TaskbarMusicWidget
             }
         }
 
-        private bool DebeOcultarse()
+        #region Soporte Multi-Monitor y Detección de Pantalla Completa
+        private static List<MONITORINFO> ObtenerMonitores()
         {
+            var list = new List<MONITORINFO>();
             try
             {
-                IntPtr myHandle = new WindowInteropHelper(this).Handle;
-                if (myHandle == IntPtr.Zero) return false;
-
-                // Obtener el monitor donde reside el widget
-                IntPtr hMonitor = MonitorFromWindow(myHandle, MONITOR_DEFAULTTONEAREST);
-                var mi = new MONITORINFO();
-                mi.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
-                if (!GetMonitorInfo(hMonitor, ref mi)) return false;
-
-                // 1. Comprobar si la barra de tareas está oculta (auto-hide o no visible)
-                IntPtr hTaskbar = FindWindow("Shell_TrayWnd", null);
-                if (hTaskbar != IntPtr.Zero)
+                EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMon, IntPtr hdc, ref RECT r, IntPtr d) =>
                 {
-                    if (!IsWindowVisible(hTaskbar))
+                    var mi = new MONITORINFO();
+                    mi.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+                    if (GetMonitorInfo(hMon, ref mi))
                     {
-                        return true;
+                        list.Add(mi);
                     }
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch { }
+            return list;
+        }
 
-                    if (GetWindowRect(hTaskbar, out RECT tbRect))
-                    {
-                        // Si la barra está configurada para ocultarse automáticamente y está escondida
-                        int tbHeight = tbRect.Bottom - tbRect.Top;
-                        if (tbRect.Top >= mi.rcMonitor.Bottom - 6 || tbHeight <= 6)
-                        {
-                            return true;
-                        }
-                    }
-                }
-
-                IntPtr flyoutHandle = _flyoutWindow != null ? new WindowInteropHelper(_flyoutWindow).Handle : IntPtr.Zero;
-
-                // 2. Comprobar si hay una aplicación en primer plano en pantalla completa (juegos, vídeos en YouTube/Netflix/Prime Video, etc.)
-                IntPtr fg = GetForegroundWindow();
-                if (fg != IntPtr.Zero && fg != hTaskbar && fg != myHandle && fg != flyoutHandle)
+        private bool MonitorTienePantallaCompleta(RECT rcMon, IntPtr myHandle, IntPtr flyoutHandle, IntPtr hTaskbar)
+        {
+            // 1. Comprobar si la ventana activa en primer plano cubre este monitor
+            IntPtr fg = GetForegroundWindow();
+            if (fg != IntPtr.Zero && fg != hTaskbar && fg != myHandle && fg != flyoutHandle)
+            {
+                int hrFg = DwmGetWindowAttribute(fg, DWMWA_CLOAKED, out int isCloakedFg, sizeof(int));
+                if (hrFg != 0 || isCloakedFg == 0)
                 {
                     var sb = new StringBuilder(128);
                     GetClassName(fg, sb, sb.Capacity);
                     string cls = sb.ToString();
 
-                    // Descartar escritorio y ventanas auxiliares de Windows
-                    if (cls != "Progman" && cls != "WorkerW" && cls != "Shell_TrayWnd" && 
-                        cls != "Shell_SecondaryTrayWnd" &&
-                        cls != "Windows.UI.Core.CoreWindow" && cls != "Xaml_WindowedPopupClass")
+                    if (cls != "Progman" && cls != "WorkerW" && cls != "Shell_TrayWnd" &&
+                        cls != "Shell_SecondaryTrayWnd" && cls != "Windows.UI.Core.CoreWindow" &&
+                        cls != "Xaml_WindowedPopupClass")
                     {
                         if (GetWindowRect(fg, out RECT fgRect))
                         {
-                            // Si la ventana activa cubre o sobrepasa toda el área del monitor
-                            if (fgRect.Left <= mi.rcMonitor.Left + 2 &&
-                                fgRect.Top <= mi.rcMonitor.Top + 2 &&
-                                fgRect.Right >= mi.rcMonitor.Right - 2 &&
-                                fgRect.Bottom >= mi.rcMonitor.Bottom - 2)
+                            if (fgRect.Left <= rcMon.Left + 2 &&
+                                fgRect.Top <= rcMon.Top + 2 &&
+                                fgRect.Right >= rcMon.Right - 2 &&
+                                fgRect.Bottom >= rcMon.Bottom - 2)
                             {
                                 return true;
                             }
                         }
                     }
                 }
+            }
 
-                // 3. Comprobar si CUALQUIER ventana visible en este monitor está en pantalla completa
-                // (por ejemplo Prime Video, Netflix, VLC o un videojuego en segundo plano mientras el usuario interactúa en el otro monitor)
-                bool hayVentanaPantallaCompleta = false;
-                EnumWindows((hWnd, lParam) =>
-                {
-                    if (hWnd == myHandle || hWnd == flyoutHandle || hWnd == hTaskbar)
-                        return true;
-
-                    if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
-                        return true;
-
-                    int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-                    if ((exStyle & 0x00000020) != 0) // WS_EX_TRANSPARENT (overlays)
-                        return true;
-
-                    var sbCls = new StringBuilder(128);
-                    GetClassName(hWnd, sbCls, sbCls.Capacity);
-                    string c = sbCls.ToString();
-
-                    if (c == "Progman" || c == "WorkerW" || c == "Shell_TrayWnd" ||
-                        c == "Shell_SecondaryTrayWnd" || c == "Windows.UI.Core.CoreWindow" ||
-                        c == "Xaml_WindowedPopupClass" || c == "EdgeUiInputTopWndClass")
-                    {
-                        return true;
-                    }
-
-                    if (GetWindowRect(hWnd, out RECT r))
-                    {
-                        // Si la ventana cubre completamente el monitor donde reside el widget (tolerando 2px de bordes)
-                        if (r.Left <= mi.rcMonitor.Left + 2 &&
-                            r.Top <= mi.rcMonitor.Top + 2 &&
-                            r.Right >= mi.rcMonitor.Right - 2 &&
-                            r.Bottom >= mi.rcMonitor.Bottom - 2)
-                        {
-                            hayVentanaPantallaCompleta = true;
-                            return false; // Detener enumeración
-                        }
-                    }
-
+            // 2. Comprobar todas las ventanas visibles en este monitor
+            bool tienePantallaCompleta = false;
+            EnumWindows((hWnd, lParam) =>
+            {
+                if (hWnd == myHandle || hWnd == flyoutHandle || hWnd == hTaskbar)
                     return true;
-                }, IntPtr.Zero);
 
-                if (hayVentanaPantallaCompleta)
+                if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
+                    return true;
+
+                int hrCloaked = DwmGetWindowAttribute(hWnd, DWMWA_CLOAKED, out int isCloaked, sizeof(int));
+                if (hrCloaked == 0 && isCloaked != 0)
+                    return true;
+
+                int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+                if ((exStyle & 0x00000020) != 0) // WS_EX_TRANSPARENT
+                    return true;
+
+                var sbCls = new StringBuilder(128);
+                GetClassName(hWnd, sbCls, sbCls.Capacity);
+                string c = sbCls.ToString();
+
+                if (c == "Progman" || c == "WorkerW" || c == "Shell_TrayWnd" ||
+                    c == "Shell_SecondaryTrayWnd" || c == "Windows.UI.Core.CoreWindow" ||
+                    c == "Xaml_WindowedPopupClass" || c == "EdgeUiInputTopWndClass")
                 {
                     return true;
                 }
+
+                if (GetWindowRect(hWnd, out RECT r))
+                {
+                    if (r.Left <= rcMon.Left + 2 &&
+                        r.Top <= rcMon.Top + 2 &&
+                        r.Right >= rcMon.Right - 2 &&
+                        r.Bottom >= rcMon.Bottom - 2)
+                    {
+                        tienePantallaCompleta = true;
+                        return false;
+                    }
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+            return tienePantallaCompleta;
+        }
+
+        private void ActualizarUbicacionYVisibilidad()
+        {
+            try
+            {
+                IntPtr myHandle = new WindowInteropHelper(this).Handle;
+                if (myHandle == IntPtr.Zero) return;
+
+                var monitores = ObtenerMonitores();
+                if (monitores.Count == 0) return;
+
+                // Monitor 1 (Principal)
+                var mon1 = monitores.FirstOrDefault(m => (m.dwFlags & 1) != 0);
+                if (mon1.rcMonitor.Right == 0 && mon1.rcMonitor.Bottom == 0) mon1 = monitores[0];
+
+                // Monitor 2 (Secundario, si existe)
+                var mon2 = monitores.FirstOrDefault(m => (m.dwFlags & 1) == 0);
+                bool hayMon2 = mon2.rcMonitor.Right != 0 && mon2.rcMonitor.Bottom != 0;
+
+                IntPtr flyoutHandle = _flyoutWindow != null ? new WindowInteropHelper(_flyoutWindow).Handle : IntPtr.Zero;
+                IntPtr hTaskbar = FindWindow("Shell_TrayWnd", null);
+
+                bool mon1EnPantallaCompleta = MonitorTienePantallaCompleta(mon1.rcMonitor, myHandle, flyoutHandle, hTaskbar);
+                bool mon2EnPantallaCompleta = hayMon2 && MonitorTienePantallaCompleta(mon2.rcMonitor, myHandle, flyoutHandle, hTaskbar);
+
+                int targetMonitor = 1;
+
+                if (_modoMonitor == ModoMonitor.Pantalla2)
+                {
+                    if (hayMon2 && !mon2EnPantallaCompleta)
+                    {
+                        targetMonitor = 2;
+                    }
+                    else
+                    {
+                        OcultarWidget();
+                        return;
+                    }
+                }
+                else if (_modoMonitor == ModoMonitor.Pantalla1)
+                {
+                    if (mon1EnPantallaCompleta)
+                    {
+                        OcultarWidget();
+                        return;
+                    }
+                    targetMonitor = 1;
+                }
+                else // ModoMonitor.Automatico
+                {
+                    if (mon1EnPantallaCompleta)
+                    {
+                        // Monitor 1 tiene pantalla completa (Prime Video, juego, vídeo o HDMI).
+                        // Si hay un monitor 2 disponible y sin pantalla completa, nos movemos a la barra del monitor 2!
+                        if (hayMon2 && !mon2EnPantallaCompleta)
+                        {
+                            targetMonitor = 2;
+                        }
+                        else
+                        {
+                            OcultarWidget();
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        targetMonitor = 1;
+                    }
+                }
+
+                // Si estamos en Monitor 1, verificar también auto-hide de la barra de tareas
+                if (targetMonitor == 1)
+                {
+                    if (hTaskbar != IntPtr.Zero)
+                    {
+                        if (!IsWindowVisible(hTaskbar))
+                        {
+                            OcultarWidget();
+                            return;
+                        }
+
+                        if (GetWindowRect(hTaskbar, out RECT tbRect))
+                        {
+                            int tbHeight = tbRect.Bottom - tbRect.Top;
+                            if (tbRect.Top >= mon1.rcMonitor.Bottom - 6 || tbHeight <= 6)
+                            {
+                                OcultarWidget();
+                                return;
+                            }
+                        }
+                    }
+
+                    PosicionarEnMonitor1(mon1);
+                }
+                else if (targetMonitor == 2 && hayMon2)
+                {
+                    PosicionarEnMonitor2(mon2);
+                }
+
+                if (this.Visibility != Visibility.Visible)
+                {
+                    this.Visibility = Visibility.Visible;
+                }
+
+                SetWindowPos(myHandle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+            catch { }
+        }
+
+        private void OcultarWidget()
+        {
+            if (this.Visibility != Visibility.Collapsed)
+            {
+                this.Visibility = Visibility.Collapsed;
+                _flyoutWindow?.HideFlyout();
+            }
+        }
+
+        private void PosicionarEnMonitor1(MONITORINFO mon1)
+        {
+            try
+            {
+                var source = PresentationSource.FromVisual(this);
+                double dpiScale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+
+                double mon1WidthDips = (mon1.rcMonitor.Right - mon1.rcMonitor.Left) / dpiScale;
+                double workAreaBottomDips = mon1.rcWork.Bottom / dpiScale;
+                double taskbarHeightDips = (mon1.rcMonitor.Bottom - mon1.rcWork.Bottom) / dpiScale;
+                if (taskbarHeightDips <= 0) taskbarHeightDips = 48;
+
+                // Base por defecto: 260px a la izquierda del borde derecho
+                double baseLeft = (mon1.rcMonitor.Left / dpiScale) + mon1WidthDips - this.Width - 260;
+
+                // Detectar dinámicamente TrayNotifyWnd
+                IntPtr hTaskbar = FindWindow("Shell_TrayWnd", null);
+                if (hTaskbar != IntPtr.Zero)
+                {
+                    IntPtr hNotify = FindWindowEx(hTaskbar, IntPtr.Zero, "TrayNotifyWnd", null);
+                    if (hNotify != IntPtr.Zero && GetWindowRect(hNotify, out RECT nRect))
+                    {
+                        _lastTrayLeft = nRect.Left;
+                        double trayLeftDips = nRect.Left / dpiScale;
+                        double trayWidthDips = (nRect.Right - nRect.Left) / dpiScale;
+
+                        bool updatePending = HayActualizacionWindowsPendiente();
+                        double offsetMargin = (trayWidthDips > 185 || updatePending) ? 65 : 16;
+                        double trayBasedLeft = trayLeftDips - this.Width - offsetMargin;
+
+                        if (trayWidthDips > 185 || updatePending)
+                        {
+                            this.Left = Math.Min(baseLeft - 65, trayBasedLeft);
+                        }
+                        else
+                        {
+                            this.Left = Math.Min(baseLeft, trayBasedLeft);
+                        }
+
+                        this.Top = workAreaBottomDips + ((taskbarHeightDips - this.Height) / 2);
+                        return;
+                    }
+                }
+
+                bool pending = HayActualizacionWindowsPendiente();
+                this.Left = pending ? baseLeft - 65 : baseLeft;
+                this.Top = workAreaBottomDips + ((taskbarHeightDips - this.Height) / 2);
             }
             catch
             {
-                // En caso de excepción no interferir
+                this.Left = SystemParameters.PrimaryScreenWidth - this.Width - 260;
             }
+        }
 
-            return false;
+        private void PosicionarEnMonitor2(MONITORINFO mon2)
+        {
+            try
+            {
+                var source = PresentationSource.FromVisual(this);
+                double dpiScale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+
+                double mon2RightDips = mon2.rcMonitor.Right / dpiScale;
+                double mon2WorkBottomDips = mon2.rcWork.Bottom / dpiScale;
+                double taskbarHeightDips = (mon2.rcMonitor.Bottom - mon2.rcWork.Bottom) / dpiScale;
+                if (taskbarHeightDips <= 0) taskbarHeightDips = 48;
+
+                // En la barra de tareas secundaria de Windows, situarse a la izquierda del reloj/borde derecho
+                this.Left = mon2RightDips - this.Width - 110;
+                this.Top = mon2WorkBottomDips + ((taskbarHeightDips - this.Height) / 2);
+            }
+            catch { }
+        }
+
+        private void PosicionarEnBarra()
+        {
+            ActualizarUbicacionYVisibilidad();
         }
 
         private static bool HayActualizacionWindowsPendiente()
         {
             try
             {
+                var p1 = System.Diagnostics.Process.GetProcessesByName("MusNotification");
+                if (p1.Length > 0) return true;
+                var p2 = System.Diagnostics.Process.GetProcessesByName("MusNotificationUx");
+                if (p2.Length > 0) return true;
+
                 using var k1 = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired");
                 if (k1 != null) return true;
                 using var k2 = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\WindowsUpdate\Orchestrator\RebootRequired");
@@ -500,68 +670,44 @@ namespace TaskbarMusicWidget
                 {
                     object? reboot = k4.GetValue("RebootPending");
                     if (reboot is int r && r == 1) return true;
+                    object? restart = k4.GetValue("RestartRequired");
+                    if (restart is int rr && rr == 1) return true;
                 }
+                using var k5 = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\PostRebootReporting");
+                if (k5 != null) return true;
             }
             catch { }
             return false;
         }
 
-        private void PosicionarEnBarra()
+        private void MenuMonitorAuto_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                double screenWidth = SystemParameters.PrimaryScreenWidth;
-                double workAreaBottom = SystemParameters.WorkArea.Bottom;
-                double screenHeight = SystemParameters.PrimaryScreenHeight;
-                double taskbarHeight = screenHeight - workAreaBottom;
-                if (taskbarHeight <= 0) taskbarHeight = 48;
-
-                // Base por defecto: 260px a la izquierda del borde derecho
-                double baseLeft = screenWidth - this.Width - 260;
-
-                // Detectar dinámicamente la posición real de la bandeja del sistema (TrayNotifyWnd)
-                IntPtr hTaskbar = FindWindow("Shell_TrayWnd", null);
-                if (hTaskbar != IntPtr.Zero)
-                {
-                    IntPtr hNotify = FindWindowEx(hTaskbar, IntPtr.Zero, "TrayNotifyWnd", null);
-                    if (hNotify != IntPtr.Zero && GetWindowRect(hNotify, out RECT nRect))
-                    {
-                        _lastTrayLeft = nRect.Left;
-
-                        var source = PresentationSource.FromVisual(this);
-                        double dpiScale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
-                        double trayLeftDips = nRect.Left / dpiScale;
-                        double trayWidthDips = (nRect.Right - nRect.Left) / dpiScale;
-
-                        // Margen de separación respecto al extremo izquierdo de la bandeja
-                        double trayBasedLeft = trayLeftDips - this.Width - 16;
-
-                        // Si la bandeja está ensanchada (>215px) por el icono de actualización de Windows o notificaciones,
-                        // o si el sistema reporta actualización pendiente, desplazamos el widget más a la izquierda
-                        bool updatePending = HayActualizacionWindowsPendiente();
-                        if (trayWidthDips > 215 || updatePending)
-                        {
-                            this.Left = Math.Min(baseLeft - 50, trayBasedLeft);
-                        }
-                        else
-                        {
-                            this.Left = Math.Min(baseLeft, trayBasedLeft);
-                        }
-
-                        this.Top = workAreaBottom + ((taskbarHeight - this.Height) / 2);
-                        return;
-                    }
-                }
-
-                // Fallback estándar si no se puede leer la bandeja
-                this.Left = baseLeft;
-                this.Top = workAreaBottom + ((taskbarHeight - this.Height) / 2);
-            }
-            catch
-            {
-                this.Left = SystemParameters.PrimaryScreenWidth - this.Width - 260;
-            }
+            _modoMonitor = ModoMonitor.Automatico;
+            ActualizarCheckmarksMonitor();
+            ActualizarUbicacionYVisibilidad();
         }
+
+        private void MenuMonitor1_Click(object sender, RoutedEventArgs e)
+        {
+            _modoMonitor = ModoMonitor.Pantalla1;
+            ActualizarCheckmarksMonitor();
+            ActualizarUbicacionYVisibilidad();
+        }
+
+        private void MenuMonitor2_Click(object sender, RoutedEventArgs e)
+        {
+            _modoMonitor = ModoMonitor.Pantalla2;
+            ActualizarCheckmarksMonitor();
+            ActualizarUbicacionYVisibilidad();
+        }
+
+        private void ActualizarCheckmarksMonitor()
+        {
+            if (MenuMonitorAuto != null) MenuMonitorAuto.IsChecked = _modoMonitor == ModoMonitor.Automatico;
+            if (MenuMonitor1 != null) MenuMonitor1.IsChecked = _modoMonitor == ModoMonitor.Pantalla1;
+            if (MenuMonitor2 != null) MenuMonitor2.IsChecked = _modoMonitor == ModoMonitor.Pantalla2;
+        }
+        #endregion
 
         private async void ConectarSesion()
         {
@@ -1985,20 +2131,46 @@ namespace TaskbarMusicWidget
 
             if (_flyoutWindow != null)
             {
+                IntPtr handle = new WindowInteropHelper(this).Handle;
+                var source = PresentationSource.FromVisual(this);
+                double dpiScale = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+
                 double flyoutLeft = this.Left + (this.Width - _flyoutWindow.Width) / 2;
+                double flyoutTop = this.Top - _flyoutWindow.Height - 6;
 
-                // Espacio de ~12px entre la tarjeta flotante y la barra de tareas al estilo nativo de Windows 11
-                // (Se descuenta el margen de 10px del borde interno de FlyoutWindow)
-                double taskbarTop = SystemParameters.WorkArea.Bottom;
-                double flyoutTop = taskbarTop - _flyoutWindow.Height - 2;
-
-                // Evitar salirse de la pantalla horizontalmente
-                double screenWidth = SystemParameters.PrimaryScreenWidth;
-                if (flyoutLeft + _flyoutWindow.Width > screenWidth - 10)
+                // Restringir la tarjeta flotante dentro del monitor actual donde reside el widget
+                IntPtr hMon = MonitorFromWindow(handle, MONITOR_DEFAULTTONEAREST);
+                if (hMon != IntPtr.Zero)
                 {
-                    flyoutLeft = screenWidth - _flyoutWindow.Width - 10;
+                    var mi = new MONITORINFO();
+                    mi.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+                    if (GetMonitorInfo(hMon, ref mi))
+                    {
+                        double workLeft = mi.rcWork.Left / dpiScale;
+                        double workRight = mi.rcWork.Right / dpiScale;
+                        double workBottom = mi.rcWork.Bottom / dpiScale;
+
+                        flyoutTop = workBottom - _flyoutWindow.Height - 2;
+
+                        if (flyoutLeft + _flyoutWindow.Width > workRight - 10)
+                        {
+                            flyoutLeft = workRight - _flyoutWindow.Width - 10;
+                        }
+                        if (flyoutLeft < workLeft + 10)
+                        {
+                            flyoutLeft = workLeft + 10;
+                        }
+                    }
                 }
-                if (flyoutLeft < 10) flyoutLeft = 10;
+                else
+                {
+                    double screenWidth = SystemParameters.PrimaryScreenWidth;
+                    if (flyoutLeft + _flyoutWindow.Width > screenWidth - 10)
+                    {
+                        flyoutLeft = screenWidth - _flyoutWindow.Width - 10;
+                    }
+                    if (flyoutLeft < 10) flyoutLeft = 10;
+                }
 
                 _flyoutWindow.ShowFlyout(flyoutLeft, flyoutTop);
             }
