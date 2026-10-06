@@ -30,6 +30,10 @@ namespace TaskbarMusicWidget
         public static string VolumeToast(int vol) => IsSpanish ? $"🔊 Volumen: {vol}%" : $"🔊 Volume: {vol}%";
         public static string MenuReconnect => IsSpanish ? "Reconectar reproductor" : "Reconnect player";
         public static string MenuExit => IsSpanish ? "Cerrar widget" : "Close widget";
+        public static string MenuMonitor => IsSpanish ? "Pantalla / Monitor" : "Display / Monitor";
+        public static string MenuMonitorAuto => IsSpanish ? "Automático (Pantalla 2 si hay pantalla completa)" : "Automatic (Screen 2 if fullscreen)";
+        public static string MenuMonitor1 => IsSpanish ? "Pantalla 1 (Principal)" : "Screen 1 (Primary)";
+        public static string MenuMonitor2 => IsSpanish ? "Pantalla 2 (HDMI / Secundaria)" : "Screen 2 (HDMI / Secondary)";
         public static string StartupError => IsSpanish ? "Error al iniciar" : "Startup error";
         public static string CheckPermissions => IsSpanish ? "Verifica permisos" : "Check permissions";
         public static string PlayingFallback => IsSpanish ? "Reproduciendo" : "Playing";
