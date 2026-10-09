@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Versión](https://img.shields.io/badge/versión-v0.9.0-1ED760?style=flat-square)
+![Versión](https://img.shields.io/badge/versión-v0.9.5-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -23,6 +23,9 @@ Un widget nativo, ligero y elegante para la barra de tareas de Windows que propo
 - **Detección Universal de Medios (GSMTC):** Compatible automáticamente con Spotify, YouTube, Twitch, Netflix, Soundcloud, VLC, Chrome, Opera, Edge, Brave y cualquier reproductor compatible con Windows Media.
 - **Tarjeta Flotante Expandible (*Flyout*):** Al pasar el ratón sobre el widget, se despliega una tarjeta flotante interactiva con carátula en alta resolución, título, artista, barra de progreso con desplazamiento manual (*scrubbing*) y controles completos.
 - **Barra de Volumen Interactiva con Porcentaje Numérico:** Barra de volumen estilo Spotify situada justo debajo del tiempo de la pista, con botón de silenciar/activar sonido, barra deslizable interactiva con clic y arrastre, porcentaje exacto en tiempo real (ej. `45%`), y ajuste con la rueda del ratón sobre el widget.
+- **Centrado y Recorte Inteligente de Miniaturas de YouTube:** Detecta y suprime automáticamente las barras negras de letterboxing 4:3 en miniaturas de YouTube (`hqdefault.jpg`, `sddefault.jpg`), extrayendo un cuadrado 1:1 perfectamente centrado y nítido tanto en el widget de la barra como en la tarjeta flotante.
+- **Menú Contextual Fluent Dark y Auto-Cierre Inteligente:** Menú de clic derecho completamente rediseñado al estilo Windows 11 Fluent con iconos vectoriales SVG limpios (recarga, selector de monitor con insignias personalizadas y checkmarks alineados, y botón de cerrar) sin bloques blancos de WPF. Incluye detección de clics en cualquier parte de la pantalla y auto-cierre tras 1.5s de inactividad del cursor.
+- **Reubicación Multi-Monitor y Modo Juegos:** Se traslada inteligentemente a la barra de tareas de la pantalla secundaria cuando la principal tiene un juego o vídeo a pantalla completa, filtrando overlays en segundo plano (como el de NVIDIA GeForce Experience) y con soporte completo para fijar manualmente el monitor (*Automático*, *Pantalla 1*, *Pantalla 2*).
 - **Animación Cinemática de Texto (*Marquee con KeyFrames*):**
   - Implementado tanto en el widget de la barra como en la tarjeta flotante (*Flyout*).
   - Medición tipográfica exacta subpíxel mediante `FormattedText` y `DesiredSize` para evitar cualquier recorte accidental.
@@ -73,6 +76,13 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.9.5
+- **Centrado y Recorte de Miniaturas de YouTube (Sin Barras Negras):** Procesamiento automático de relación de aspecto que detecta y suprime las bandas negras de letterboxing 4:3 en miniaturas de YouTube (`hqdefault.jpg`, `sddefault.jpg`), obteniendo el fotograma central 1:1 real del vídeo con escalado de alta calidad sincronizado entre el widget y la tarjeta flotante.
+- **Menú Contextual Windows 11 Fluent Dark:** Rediseño íntegro del menú de clic derecho, reemplazando el canalón blanco predeterminado de WPF por un tema oscuro translúcido (`#242424`), esquinas redondeadas (`CornerRadius="8"`), sombras suaves e iconos vectoriales SVG personalizados (recarga, monitor con insignias dedicadas y checkmarks de selección alineados, y cruz de cierre "X").
+- **Auto-Cierre Inteligente del Menú Contextual:** Detección de clics en toda la pantalla mediante Win32 `GetAsyncKeyState` para ventanas `WS_EX_NOACTIVATE`, cerrando el menú al instante al hacer clic en cualquier otra parte, más temporizador de 1.5 segundos de inactividad al retirar el ratón.
+- **Reubicación Multi-Monitor y Exclusión de Overlays:** Filtro para evitar falsos positivos de pantalla completa causados por aplicaciones superpuestas (como NVIDIA GeForce Experience `CEF-OSC-WIDGET`), calibrando la distancia respecto a la fecha y hora de la barra de tareas (170px en Pantalla 2, 280px en Pantalla 1).
+- **Control de Silencio (Mute / Unmute) Sincronizado:** Botón interactivo de altavoz en el flyout para silenciar o restaurar el sonido en tiempo real, coordinado con la sesión activa.
 
 ### v0.9.0
 - **Panel de Configuración Integrado en el Flyout:** Incorporación de un botón de engranaje (`⚙`) en la cabecera de la tarjeta flotante para acceder a la configuración sin ventanas emergentes externas.

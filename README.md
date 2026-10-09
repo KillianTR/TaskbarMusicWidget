@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.9.0-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.9.5-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -23,6 +23,9 @@ A native, lightweight, and elegant Windows taskbar widget that delivers real-tim
 - **Universal Media Detection (GSMTC):** Automatically supports Spotify, YouTube, Twitch, Netflix, SoundCloud, VLC, Chrome, Opera, Edge, Brave, and any Windows Media-compatible player.
 - **Expandable Interactive Flyout Card:** Hovering over the widget displays an interactive floating card with high-resolution album art, track title, artist name, a full progress bar with manual scrubbing, and playback controls.
 - **Interactive Volume Bar & Percentage Display:** Spotify-styled volume slider placed directly below the track timeline, featuring an instant mute/unmute button, click-to-position & drag slider, live volume percentage (e.g., `45%`), plus mouse wheel control over the taskbar widget.
+- **Letterbox-Free YouTube Thumbnail Centering:** Automatically detects and strips away letterbox black bars from 4:3 YouTube video thumbnails (`hqdefault.jpg`, `sddefault.jpg`), extracting and centering a pristine 1:1 square video frame in both the taskbar widget and flyout card.
+- **Fluent Dark Context Menu & Smart Auto-Dismiss:** Sleek Windows 11 Fluent right-click menu with clean vector SVG icons (reconnect, display monitor with custom badges, and close) without classic WPF white gutter artifacts. Features instant outside-click dismissal and a 1.5-second mouse inactivity timeout.
+- **Multi-Monitor Relocation & Gaming Mode:** Intelligently moves to the secondary monitor when the primary screen is occupied by a fullscreen game or video, ignoring background overlays (e.g. NVIDIA GeForce Overlay) with full support for manual display pinning (*Automatic*, *Display 1*, *Display 2*).
 - **Cinematic Text Marquee (KeyFrame Animation):**
   - Implemented in both the taskbar widget and the floating card (*Flyout*).
   - Subpixel typographical measurement via `FormattedText` and `DesiredSize` to eliminate premature truncation.
@@ -73,6 +76,13 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.9.5
+- **Letterbox-Free YouTube Thumbnail Centering:** Intelligent aspect-ratio processing that automatically detects and strips away letterbox black bars from 4:3 YouTube thumbnails (`hqdefault.jpg`, `sddefault.jpg`), extracting the true 1:1 square centered video frame. Synchronized immediately across the taskbar widget and flyout card with high-quality scaling.
+- **Windows 11 Fluent Dark Context Menu:** Complete overhaul of the right-click menu, replacing WPF's default white gutter with a dark translucent theme (`#242424`), rounded corners (`CornerRadius="8"`), subtle shadows, and crisp vector SVG icons (reconnect, display monitor, custom display badges with checkmark indicators, and close "X").
+- **Intelligent Context Menu Auto-Dismiss:** Added screen-wide click detection using Win32 `GetAsyncKeyState` for `WS_EX_NOACTIVATE` windows, ensuring the menu closes instantly when clicking elsewhere on screen, plus a 1.5-second inactivity timeout when moving the mouse away.
+- **Multi-Monitor Relocation & Overlay Exclusion:** Filtered out false-positive fullscreen detection caused by background overlays (such as NVIDIA GeForce Experience `CEF-OSC-WIDGET`), while refining manual display selection and taskbar clearance (170px on Monitor 2, 280px on Monitor 1).
+- **Mute / Unmute Audio Toggle:** Added real-time mute/unmute control directly from the flyout volume speaker button, syncing flawlessly across all active media sessions.
 
 ### v0.9.0
 - **Flyout Settings Panel:** Added an in-card configuration menu toggled via the new gear icon button (`⚙`) in the flyout header.
