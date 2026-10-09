@@ -117,7 +117,8 @@
                     <Border Grid.Column="0" Width="48" Height="48" CornerRadius="6" 
                             ClipToBounds="True" Background="#2C2C2C" Cursor="Hand"
                             MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
-                        <Image x:Name="FlyoutCover" Stretch="UniformToFill"/>
+                        <Image x:Name="FlyoutCover" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>
 
                     <!-- Textos con Marquee dinámico (Clic para enfocar la app) -->
