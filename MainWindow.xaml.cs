@@ -34,6 +34,9 @@ namespace TaskbarMusicWidget
 
         private readonly DispatcherTimer _watchdogTimer;
         private readonly DispatcherTimer _closeFlyoutTimer;
+        private readonly DispatcherTimer _contextMenuDismissTimer;
+        private DateTime _contextMenuOpenedTime = DateTime.MinValue;
+        private int _mouseAwayCounterMs = 0;
 
         private bool _isPlaying = false;
         private TimeSpan _currentPosition = TimeSpan.Zero;
@@ -159,6 +162,13 @@ namespace TaskbarMusicWidget
             public int Y;
         }
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         [DllImport("user32.dll")]
@@ -242,6 +252,10 @@ namespace TaskbarMusicWidget
             // Temporizador debounce para cerrar la tarjeta flotante suavemente al salir el cursor
             _closeFlyoutTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
             _closeFlyoutTimer.Tick += CloseFlyoutTimer_Tick;
+
+            // Temporizador para auto-cerrar el menú contextual si se hace clic fuera o si el ratón se aleja
+            _contextMenuDismissTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+            _contextMenuDismissTimer.Tick += ContextMenuDismissTimer_Tick;
 
             SystemEvents.DisplaySettingsChanged += (s, e) => Dispatcher.Invoke(PosicionarEnBarra);
             SystemEvents.UserPreferenceChanged += (s, e) => Dispatcher.Invoke(PosicionarEnBarra);
@@ -748,6 +762,109 @@ namespace TaskbarMusicWidget
             if (MenuMonitor1 != null) MenuMonitor1.IsChecked = _modoMonitor == ModoMonitor.Pantalla1;
             if (MenuMonitor2 != null) MenuMonitor2.IsChecked = _modoMonitor == ModoMonitor.Pantalla2;
         }
+
+        private void WidgetContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            _contextMenuOpenedTime = DateTime.UtcNow;
+            _mouseAwayCounterMs = 0;
+            _contextMenuDismissTimer.Start();
+        }
+
+        private void WidgetContextMenu_Closed(object sender, RoutedEventArgs e)
+        {
+            _contextMenuDismissTimer.Stop();
+            _mouseAwayCounterMs = 0;
+        }
+
+        private void ContextMenuDismissTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!WidgetContextMenu.IsOpen)
+            {
+                _contextMenuDismissTimer.Stop();
+                return;
+            }
+
+            // Margen inicial de 200 ms tras abrir para no procesar el botón de ratón que lo abrió
+            if ((DateTime.UtcNow - _contextMenuOpenedTime).TotalMilliseconds < 200)
+            {
+                return;
+            }
+
+            if (!GetCursorPos(out POINT pt)) return;
+
+            bool mouseOverMenu = false;
+
+            try
+            {
+                // 1. Comprobar si el cursor está sobre el ContextMenu principal
+                if (WidgetContextMenu.IsLoaded && WidgetContextMenu.ActualWidth > 0 && WidgetContextMenu.ActualHeight > 0)
+                {
+                    Point menuPos = WidgetContextMenu.PointToScreen(new Point(0, 0));
+                    var source = PresentationSource.FromVisual(WidgetContextMenu);
+                    double dpiX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                    double dpiY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+                    Rect menuRect = new Rect(menuPos.X - 6, menuPos.Y - 6, WidgetContextMenu.ActualWidth * dpiX + 12, WidgetContextMenu.ActualHeight * dpiY + 12);
+                    if (menuRect.Contains(pt.X, pt.Y))
+                    {
+                        mouseOverMenu = true;
+                    }
+                }
+
+                // 2. Comprobar si el submenú de Monitor está abierto y si el cursor está sobre él
+                if (!mouseOverMenu && MenuMonitorItem != null && MenuMonitorItem.IsSubmenuOpen)
+                {
+                    if (MenuMonitorAuto != null && MenuMonitorAuto.IsLoaded)
+                    {
+                        Point subPos = MenuMonitorAuto.PointToScreen(new Point(0, 0));
+                        var source = PresentationSource.FromVisual(MenuMonitorAuto);
+                        double dpiX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                        double dpiY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+                        double subW = (MenuMonitorAuto.ActualWidth > 0 ? MenuMonitorAuto.ActualWidth : 260) * dpiX;
+                        double subH = 115 * dpiY;
+                        Rect subRect = new Rect(subPos.X - 10, subPos.Y - 10, subW + 20, subH + 20);
+                        if (subRect.Contains(pt.X, pt.Y))
+                        {
+                            mouseOverMenu = true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                mouseOverMenu = WidgetContextMenu.IsMouseOver || (MenuMonitorItem != null && MenuMonitorItem.IsSubmenuOpen && MenuMonitorItem.IsMouseOver);
+            }
+
+            // Comprobar si se hace clic con botón izquierdo (0x01) o derecho (0x02) en cualquier lugar de la pantalla
+            short leftState = GetAsyncKeyState(0x01);
+            short rightState = GetAsyncKeyState(0x02);
+            bool isClickDown = (leftState & 0x8000) != 0 || (rightState & 0x8000) != 0;
+
+            if (isClickDown)
+            {
+                if (!mouseOverMenu)
+                {
+                    // Clic fuera del menú: cerrar de inmediato
+                    WidgetContextMenu.IsOpen = false;
+                    _contextMenuDismissTimer.Stop();
+                    return;
+                }
+            }
+
+            // Si el cursor no está sobre las opciones del menú, contar tiempo para auto-desaparecer
+            if (!mouseOverMenu)
+            {
+                _mouseAwayCounterMs += 50;
+                if (_mouseAwayCounterMs >= 1500)
+                {
+                    WidgetContextMenu.IsOpen = false;
+                    _contextMenuDismissTimer.Stop();
+                }
+            }
+            else
+            {
+                _mouseAwayCounterMs = 0;
+            }
+        }
         #endregion
 
         private async void ConectarSesion()
@@ -1140,9 +1257,10 @@ namespace TaskbarMusicWidget
                     byte[] fileBytes = File.ReadAllBytes(cachePath);
                     if (fileBytes != null && fileBytes.Length > 0)
                     {
-                        cover = CrearBitmapDesdeBytes(fileBytes);
-                        if (cover != null)
+                        var rawCover = CrearBitmapDesdeBytes(fileBytes);
+                        if (rawCover != null)
                         {
+                            cover = RecortarYCentrarThumbnailYouTube(rawCover);
                             _youtubeThumbnailCache[titleKey] = cover;
                             return true;
                         }
@@ -1170,6 +1288,71 @@ namespace TaskbarMusicWidget
             catch
             {
                 return null;
+            }
+        }
+
+        private static BitmapSource RecortarYCentrarThumbnailYouTube(BitmapSource original)
+        {
+            if (original == null) return original!;
+
+            try
+            {
+                int w = original.PixelWidth;
+                int h = original.PixelHeight;
+                if (w <= 0 || h <= 0) return original;
+
+                // Si ya es exactamente cuadrada (1:1), no requiere recorte
+                if (w == h) return original;
+
+                int cropX;
+                int cropY;
+                int cropSize;
+
+                // Detección de miniaturas de YouTube con formato letterbox 4:3 (vídeo 16:9 con bandas negras arriba y abajo).
+                // Por ejemplo:
+                // - hqdefault.jpg es 480x360 con 45px de barras negras superior e inferior.
+                // - sddefault.jpg es 640x480 con 60px de barras negras.
+                int videoH = (int)Math.Round(w * 9.0 / 16.0);
+                int blackBarH = (h - videoH) / 2;
+
+                if (blackBarH > 2 && h > videoH)
+                {
+                    // Contiene barras negras superior e inferior debido al contenedor 4:3 de YouTube.
+                    // Extraemos el centro 1:1 de la zona real del vídeo.
+                    cropSize = videoH;
+                    cropX = (w - cropSize) / 2;
+                    cropY = blackBarH;
+                }
+                else if (w > h)
+                {
+                    // Miniatura panorámica 16:9 sin bandas negras (como maxresdefault 1280x720 o mqdefault 320x180).
+                    // Extraer el cuadrado 1:1 perfectamente centrado horizontalmente.
+                    cropSize = h;
+                    cropX = (w - cropSize) / 2;
+                    cropY = 0;
+                }
+                else
+                {
+                    // Formato vertical (Shorts u orientación vertical).
+                    cropSize = w;
+                    cropX = 0;
+                    cropY = (h - cropSize) / 2;
+                }
+
+                if (cropX < 0) cropX = 0;
+                if (cropY < 0) cropY = 0;
+                if (cropX + cropSize > w) cropSize = w - cropX;
+                if (cropY + cropSize > h) cropSize = h - cropY;
+
+                if (cropSize <= 0) return original;
+
+                var cropped = new CroppedBitmap(original, new Int32Rect(cropX, cropY, cropSize, cropSize));
+                cropped.Freeze();
+                return cropped;
+            }
+            catch
+            {
+                return original;
             }
         }
 
@@ -1335,9 +1518,10 @@ namespace TaskbarMusicWidget
 
                     if (imgBytes != null && imgBytes.Length > 0)
                     {
-                        var bmp = CrearBitmapDesdeBytes(imgBytes);
-                        if (bmp != null)
+                        var rawBmp = CrearBitmapDesdeBytes(imgBytes);
+                        if (rawBmp != null)
                         {
+                            var bmp = RecortarYCentrarThumbnailYouTube(rawBmp);
                             _youtubeThumbnailCache[cleanTitle] = bmp;
 
                             _ = Task.Run(async () =>
@@ -1374,7 +1558,7 @@ namespace TaskbarMusicWidget
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        if (_currentTitle == cleanTitle)
+                        if (_currentTitle == cleanTitle || _currentTitle.Contains(cleanTitle, StringComparison.OrdinalIgnoreCase))
                         {
                             _currentCover = thumb;
                             AlbumArt.Source = thumb;
@@ -1483,9 +1667,10 @@ namespace TaskbarMusicWidget
                         }
                         else
                         {
-                            // Mostramos el thumbnail de SMTC temporalmente si existe mientras se descarga la miniatura oficial
-                            _currentCover = bmp;
-                            AlbumArt.Source = bmp;
+                            // Mostramos el thumbnail de SMTC temporalmente recortado y centrado mientras se descarga la miniatura oficial
+                            ImageSource? ytBmp = bmp != null ? RecortarYCentrarThumbnailYouTube(bmp) : null;
+                            _currentCover = ytBmp;
+                            AlbumArt.Source = ytBmp;
                             _ = CargarThumbnailYouTubeAsync(titleKey, _currentArtist);
                         }
                     }

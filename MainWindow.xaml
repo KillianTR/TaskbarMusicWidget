@@ -47,23 +47,251 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Separator moderno y sutil para menús Fluent -->
+        <Style TargetType="{x:Type Separator}">
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Margin" Value="6,4"/>
+            <Setter Property="Background" Value="#2EFFFFFF"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Separator}">
+                        <Border Height="1" Background="{TemplateBinding Background}" SnapsToDevicePixels="True"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Template para ítems normales del menú (sin submenú) -->
+        <ControlTemplate x:Key="FluentSubmenuItemTemplate" TargetType="{x:Type MenuItem}">
+            <Border x:Name="TemplateRoot" 
+                    Background="{TemplateBinding Background}" 
+                    BorderBrush="{TemplateBinding BorderBrush}" 
+                    BorderThickness="0" 
+                    CornerRadius="5" 
+                    Margin="4,1" 
+                    Padding="6,5" 
+                    SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="CheckCol"/>
+                        <ColumnDefinition Width="22" SharedSizeGroup="IconCol"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Indicador Checkmark para ítems seleccionables (submenú) -->
+                    <Border x:Name="CheckContainer" Grid.Column="0" Width="18" HorizontalAlignment="Center" Visibility="Collapsed">
+                        <Path x:Name="CheckIcon" Width="10" Height="8" Stretch="Uniform" 
+                              Stroke="#60CDFF" StrokeThickness="2" 
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Data="M 1,4.5 L 3.8,7.5 L 9.5,1" 
+                              Visibility="Hidden"/>
+                    </Border>
+
+                    <!-- Icono vectorial del ítem -->
+                    <ContentPresenter x:Name="IconPresenter" Grid.Column="1" 
+                                      ContentSource="Icon" 
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                    <!-- Texto del ítem -->
+                    <ContentPresenter x:Name="HeaderHost" Grid.Column="2" 
+                                      ContentSource="Header" 
+                                      RecognizesAccessKey="True" 
+                                      VerticalAlignment="Center" 
+                                      Margin="6,0,10,0"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsCheckable" Value="True">
+                    <Setter TargetName="CheckContainer" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="CheckIcon" Property="Visibility" Value="Hidden"/>
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="CheckContainer" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="CheckIcon" Property="Visibility" Value="Visible"/>
+                </Trigger>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="TemplateRoot" Property="Background" Value="#25FFFFFF"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter TargetName="TemplateRoot" Property="Opacity" Value="0.45"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Template para ítems que abren un submenú (ej. Pantalla / Monitor) -->
+        <ControlTemplate x:Key="FluentSubmenuHeaderTemplate" TargetType="{x:Type MenuItem}">
+            <Border x:Name="TemplateRoot" 
+                    Background="{TemplateBinding Background}" 
+                    BorderBrush="{TemplateBinding BorderBrush}" 
+                    BorderThickness="0" 
+                    CornerRadius="5" 
+                    Margin="4,1" 
+                    Padding="6,5" 
+                    SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="CheckCol"/>
+                        <ColumnDefinition Width="22" SharedSizeGroup="IconCol"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ContentPresenter x:Name="IconPresenter" Grid.Column="1" 
+                                      ContentSource="Icon" 
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                    <ContentPresenter x:Name="HeaderHost" Grid.Column="2" 
+                                      ContentSource="Header" 
+                                      RecognizesAccessKey="True" 
+                                      VerticalAlignment="Center" 
+                                      Margin="6,0,10,0"/>
+
+                    <!-- Flecha hacia la derecha -->
+                    <Path Grid.Column="3" Width="5" Height="9" Stretch="Uniform" Fill="#A0A0A0" 
+                          Data="M 0,0 L 4,4 L 0,8" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
+
+                    <Popup x:Name="PART_Popup" 
+                           AllowsTransparency="True" 
+                           Focusable="False" 
+                           IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" 
+                           Placement="Right" 
+                           VerticalOffset="-4" HorizontalOffset="2"
+                           PopupAnimation="Fade">
+                        <Border Background="#242424" 
+                                BorderBrush="#35FFFFFF" 
+                                BorderThickness="1" 
+                                CornerRadius="8" 
+                                Padding="2,4"
+                                SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000000" BlurRadius="14" ShadowDepth="3" Opacity="0.5"/>
+                            </Border.Effect>
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" 
+                                        Grid.IsSharedSizeScope="True"/>
+                        </Border>
+                    </Popup>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="TemplateRoot" Property="Background" Value="#25FFFFFF"/>
+                </Trigger>
+                <Trigger Property="IsSubmenuOpen" Value="True">
+                    <Setter TargetName="TemplateRoot" Property="Background" Value="#20FFFFFF"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter TargetName="TemplateRoot" Property="Opacity" Value="0.45"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Estilo general para MenuItem -->
         <Style TargetType="{x:Type MenuItem}">
-            <Setter Property="Background" Value="#202020"/>
+            <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="Role" Value="SubmenuItem">
+                    <Setter Property="Template" Value="{StaticResource FluentSubmenuItemTemplate}"/>
+                </Trigger>
+                <Trigger Property="Role" Value="SubmenuHeader">
+                    <Setter Property="Template" Value="{StaticResource FluentSubmenuHeaderTemplate}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Estilo para ContextMenu con borde redondeado y sombra fluida -->
+        <Style TargetType="{x:Type ContextMenu}">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Grid.IsSharedSizeScope" Value="True"/>
+            <Setter Property="HasDropShadow" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ContextMenu}">
+                        <Border Background="#242424" 
+                                BorderBrush="#35FFFFFF" 
+                                BorderThickness="1" 
+                                CornerRadius="8" 
+                                Padding="2,4"
+                                SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000000" BlurRadius="14" ShadowDepth="4" Opacity="0.55"/>
+                            </Border.Effect>
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
     <Window.ContextMenu>
-        <ContextMenu x:Name="WidgetContextMenu" Background="#202020" Foreground="#FFFFFF" BorderBrush="#33FFFFFF">
-            <MenuItem x:Name="MenuReconnectItem" Header="Reconectar reproductor" Click="MenuReconnect_Click"/>
-            <Separator Background="#33FFFFFF"/>
-            <MenuItem x:Name="MenuMonitorItem" Header="Pantalla / Monitor">
-                <MenuItem x:Name="MenuMonitorAuto" Header="Automático (Pantalla 2 si hay pantalla completa)" IsCheckable="True" IsChecked="True" Click="MenuMonitorAuto_Click"/>
-                <MenuItem x:Name="MenuMonitor1" Header="Pantalla 1 (Principal)" IsCheckable="True" Click="MenuMonitor1_Click"/>
-                <MenuItem x:Name="MenuMonitor2" Header="Pantalla 2 (HDMI / Secundaria)" IsCheckable="True" Click="MenuMonitor2_Click"/>
+        <ContextMenu x:Name="WidgetContextMenu" 
+                     Opened="WidgetContextMenu_Opened" 
+                     Closed="WidgetContextMenu_Closed">
+            <!-- Reconectar reproductor (Icono recarga circular) -->
+            <MenuItem x:Name="MenuReconnectItem" Header="Reconectar reproductor" Click="MenuReconnect_Click">
+                <MenuItem.Icon>
+                    <Path Width="13" Height="13" Stretch="Uniform" Fill="#D0D0D0"
+                          Data="M 13.5,8 C 13.5,11.04 11.04,13.5 8,13.5 C 4.96,13.5 2.5,11.04 2.5,8 C 2.5,4.96 4.96,2.5 8,2.5 L 8,1 L 11.5,3.5 L 8,6 L 8,4.5 C 6.07,4.5 4.5,6.07 4.5,8 C 4.5,9.93 6.07,11.5 8,11.5 C 9.93,11.5 11.5,9.93 11.5,8 Z"/>
+                </MenuItem.Icon>
             </MenuItem>
-            <Separator Background="#33FFFFFF"/>
-            <MenuItem x:Name="MenuExitItem" Header="Cerrar widget" Click="MenuExit_Click"/>
+            
+            <Separator/>
+            
+            <!-- Pantalla / Monitor (Icono de pantalla/monitor) -->
+            <MenuItem x:Name="MenuMonitorItem" Header="Pantalla / Monitor">
+                <MenuItem.Icon>
+                    <Path Width="14" Height="13" Stretch="Uniform" Fill="#D0D0D0"
+                          Data="M 1,2 C 0.45,2 0,2.45 0,3 L 0,10.5 C 0,11.05 0.45,11.5 1,11.5 L 5.5,11.5 L 5.5,13 L 4,13 C 3.7,13 3.5,13.2 3.5,13.5 C 3.5,13.8 3.7,14 4,14 L 11,14 C 11.3,14 11.5,13.8 11.5,13.5 C 11.5,13.2 11.3,13 11,13 L 9.5,13 L 9.5,11.5 L 14,11.5 C 14.55,11.5 15,11.05 15,10.5 L 15,3 C 15,2.45 14.55,2 14,2 Z M 1.5,3.2 L 13.5,3.2 L 13.5,10 L 1.5,10 Z"/>
+                </MenuItem.Icon>
+                
+                <!-- Automático (Icono monitor con indicador A) -->
+                <MenuItem x:Name="MenuMonitorAuto" Header="Automático (Pantalla 2 si hay pantalla completa)" IsCheckable="True" IsChecked="True" Click="MenuMonitorAuto_Click">
+                    <MenuItem.Icon>
+                        <Grid Width="14" Height="13">
+                            <Path Stretch="Uniform" Fill="#D0D0D0"
+                                  Data="M 1,2 C 0.45,2 0,2.45 0,3 L 0,10.5 C 0,11.05 0.45,11.5 1,11.5 L 5.5,11.5 L 5.5,13 L 4,13 C 3.7,13 3.5,13.2 3.5,13.5 C 3.5,13.8 3.7,14 4,14 L 11,14 C 11.3,14 11.5,13.8 11.5,13.5 C 11.5,13.2 11.3,13 11,13 L 9.5,13 L 9.5,11.5 L 14,11.5 C 14.55,11.5 15,11.05 15,10.5 L 15,3 C 15,2.45 14.55,2 14,2 Z M 1.5,3.2 L 13.5,3.2 L 13.5,10 L 1.5,10 Z"/>
+                            <TextBlock Text="A" FontSize="7" FontWeight="Bold" Foreground="#60CDFF" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,1.5,0,0"/>
+                        </Grid>
+                    </MenuItem.Icon>
+                </MenuItem>
+                
+                <!-- Pantalla 1 (Icono monitor con número 1) -->
+                <MenuItem x:Name="MenuMonitor1" Header="Pantalla 1 (Principal)" IsCheckable="True" Click="MenuMonitor1_Click">
+                    <MenuItem.Icon>
+                        <Grid Width="14" Height="13">
+                            <Path Stretch="Uniform" Fill="#D0D0D0"
+                                  Data="M 1,2 C 0.45,2 0,2.45 0,3 L 0,10.5 C 0,11.05 0.45,11.5 1,11.5 L 5.5,11.5 L 5.5,13 L 4,13 C 3.7,13 3.5,13.2 3.5,13.5 C 3.5,13.8 3.7,14 4,14 L 11,14 C 11.3,14 11.5,13.8 11.5,13.5 C 11.5,13.2 11.3,13 11,13 L 9.5,13 L 9.5,11.5 L 14,11.5 C 14.55,11.5 15,11.05 15,10.5 L 15,3 C 15,2.45 14.55,2 14,2 Z M 1.5,3.2 L 13.5,3.2 L 13.5,10 L 1.5,10 Z"/>
+                            <TextBlock Text="1" FontSize="7" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,1.5,0,0"/>
+                        </Grid>
+                    </MenuItem.Icon>
+                </MenuItem>
+                
+                <!-- Pantalla 2 (Icono monitor con número 2) -->
+                <MenuItem x:Name="MenuMonitor2" Header="Pantalla 2 (HDMI / Secundaria)" IsCheckable="True" Click="MenuMonitor2_Click">
+                    <MenuItem.Icon>
+                        <Grid Width="14" Height="13">
+                            <Path Stretch="Uniform" Fill="#D0D0D0"
+                                  Data="M 1,2 C 0.45,2 0,2.45 0,3 L 0,10.5 C 0,11.05 0.45,11.5 1,11.5 L 5.5,11.5 L 5.5,13 L 4,13 C 3.7,13 3.5,13.2 3.5,13.5 C 3.5,13.8 3.7,14 4,14 L 11,14 C 11.3,14 11.5,13.8 11.5,13.5 C 11.5,13.2 11.3,13 11,13 L 9.5,13 L 9.5,11.5 L 14,11.5 C 14.55,11.5 15,11.05 15,10.5 L 15,3 C 15,2.45 14.55,2 14,2 Z M 1.5,3.2 L 13.5,3.2 L 13.5,10 L 1.5,10 Z"/>
+                            <TextBlock Text="2" FontSize="7" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,1.5,0,0"/>
+                        </Grid>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            
+            <Separator/>
+            
+            <!-- Cerrar widget (Icono X roja/blanca clásica de cierre) -->
+            <MenuItem x:Name="MenuExitItem" Header="Cerrar widget" Click="MenuExit_Click">
+                <MenuItem.Icon>
+                    <Path Width="10" Height="10" Stretch="Uniform" Fill="#FF6B6B"
+                          Data="M 11.7,2.3 C 12.1,1.9 12.1,1.3 11.7,0.9 C 11.3,0.5 10.7,0.5 10.3,0.9 L 6.3,4.9 L 2.3,0.9 C 1.9,0.5 1.3,0.5 0.9,0.9 C 0.5,1.3 0.5,1.9 0.9,2.3 L 4.9,6.3 L 0.9,10.3 C 0.5,10.7 0.5,11.3 0.9,11.7 C 1.3,12.1 1.9,12.1 2.3,11.7 L 6.3,7.7 L 10.3,11.7 C 10.7,12.1 11.3,12.1 11.7,11.7 C 12.1,11.3 12.1,10.7 11.7,10.3 L 7.7,6.3 Z"/>
+                </MenuItem.Icon>
+            </MenuItem>
         </ContextMenu>
     </Window.ContextMenu>
 
@@ -84,7 +312,8 @@
             <Border x:Name="AlbumArtBorder" Grid.Column="0" Width="26" Height="26" CornerRadius="4" 
                     ClipToBounds="True" Background="#2A2A2A" VerticalAlignment="Center"
                     Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
-                <Image x:Name="AlbumArt" Stretch="UniformToFill"/>
+                <Image x:Name="AlbumArt" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
             </Border>
 
             <!-- Título y Artista (Clic para abrir reproductor + Marquee bidireccional) -->
