@@ -391,6 +391,18 @@ namespace TaskbarMusicWidget
             return list;
         }
 
+        private static bool WindowCoversMonitor(RECT r, RECT rcMon)
+        {
+            // Margen de tolerancia de 12px para absorber desajustes por escalado DPI,
+            // bordes de ventana o alineación multimonitor (la barra de tareas mide 40-48px,
+            // por lo que una ventana maximizada que respeta la barra NUNCA activará esta condición).
+            const int tolerance = 12;
+            return r.Left <= rcMon.Left + tolerance &&
+                   r.Top <= rcMon.Top + tolerance &&
+                   r.Right >= rcMon.Right - tolerance &&
+                   r.Bottom >= rcMon.Bottom - tolerance;
+        }
+
         private static bool EsVentanaSuperpuestaOIgnorable(string cls, string title, int exStyle)
         {
             // Ignorar ventanas de herramientas / tool windows
@@ -399,10 +411,6 @@ namespace TaskbarMusicWidget
 
             // Ignorar ventanas transparentes al ratón / click-through
             if ((exStyle & 0x00000020) != 0) // WS_EX_TRANSPARENT
-                return true;
-
-            // Ignorar ventanas sin título (los vídeos y videojuegos a pantalla completa SIEMPRE tienen título)
-            if (string.IsNullOrWhiteSpace(title))
                 return true;
 
             // Ignorar elementos del sistema de Windows / escritorio
@@ -433,11 +441,11 @@ namespace TaskbarMusicWidget
             return false;
         }
 
-        private bool MonitorTienePantallaCompleta(RECT rcMon, IntPtr myHandle, IntPtr flyoutHandle, IntPtr hTaskbar)
+        private bool MonitorTienePantallaCompleta(RECT rcMon, IntPtr myHandle, IntPtr flyoutHandle, IntPtr hTaskbar, IntPtr hSecTaskbar)
         {
             // 1. Comprobar si la ventana activa en primer plano cubre este monitor
             IntPtr fg = GetForegroundWindow();
-            if (fg != IntPtr.Zero && fg != hTaskbar && fg != myHandle && fg != flyoutHandle)
+            if (fg != IntPtr.Zero && fg != hTaskbar && fg != hSecTaskbar && fg != myHandle && fg != flyoutHandle)
             {
                 int hrFg = DwmGetWindowAttribute(fg, DWMWA_CLOAKED, out int isCloakedFg, sizeof(int));
                 if (hrFg != 0 || isCloakedFg == 0)
@@ -455,10 +463,7 @@ namespace TaskbarMusicWidget
                     {
                         if (GetWindowRect(fg, out RECT fgRect))
                         {
-                            if (fgRect.Left <= rcMon.Left + 2 &&
-                                fgRect.Top <= rcMon.Top + 2 &&
-                                fgRect.Right >= rcMon.Right - 2 &&
-                                fgRect.Bottom >= rcMon.Bottom - 2)
+                            if (WindowCoversMonitor(fgRect, rcMon))
                             {
                                 return true;
                             }
@@ -471,7 +476,7 @@ namespace TaskbarMusicWidget
             bool tienePantallaCompleta = false;
             EnumWindows((hWnd, lParam) =>
             {
-                if (hWnd == myHandle || hWnd == flyoutHandle || hWnd == hTaskbar)
+                if (hWnd == myHandle || hWnd == flyoutHandle || hWnd == hTaskbar || hWnd == hSecTaskbar)
                     return true;
 
                 if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
@@ -497,10 +502,7 @@ namespace TaskbarMusicWidget
 
                 if (GetWindowRect(hWnd, out RECT r))
                 {
-                    if (r.Left <= rcMon.Left + 2 &&
-                        r.Top <= rcMon.Top + 2 &&
-                        r.Right >= rcMon.Right - 2 &&
-                        r.Bottom >= rcMon.Bottom - 2)
+                    if (WindowCoversMonitor(r, rcMon))
                     {
                         tienePantallaCompleta = true;
                         return false;
@@ -533,9 +535,10 @@ namespace TaskbarMusicWidget
 
                 IntPtr flyoutHandle = _flyoutWindow != null ? new WindowInteropHelper(_flyoutWindow).Handle : IntPtr.Zero;
                 IntPtr hTaskbar = FindWindow("Shell_TrayWnd", null);
+                IntPtr hSecTaskbar = FindWindow("Shell_SecondaryTrayWnd", null);
 
-                bool mon1EnPantallaCompleta = MonitorTienePantallaCompleta(mon1.rcMonitor, myHandle, flyoutHandle, hTaskbar);
-                bool mon2EnPantallaCompleta = hayMon2 && MonitorTienePantallaCompleta(mon2.rcMonitor, myHandle, flyoutHandle, hTaskbar);
+                bool mon1EnPantallaCompleta = MonitorTienePantallaCompleta(mon1.rcMonitor, myHandle, flyoutHandle, hTaskbar, hSecTaskbar);
+                bool mon2EnPantallaCompleta = hayMon2 && MonitorTienePantallaCompleta(mon2.rcMonitor, myHandle, flyoutHandle, hTaskbar, hSecTaskbar);
 
                 int targetMonitor = 1;
 
@@ -551,30 +554,34 @@ namespace TaskbarMusicWidget
                 }
                 else // ModoMonitor.Automatico
                 {
-                    if (mon1EnPantallaCompleta)
+                    if (mon1EnPantallaCompleta && !mon2EnPantallaCompleta && hayMon2)
                     {
-                        // Monitor 1 tiene pantalla completa (Prime Video, juego, etc.).
-                        // Si hay un monitor 2 disponible, nos movemos a la barra del monitor 2!
-                        if (hayMon2 && !mon2EnPantallaCompleta)
-                        {
-                            targetMonitor = 2;
-                        }
-                        else
-                        {
-                            OcultarWidget();
-                            return;
-                        }
+                        // Monitor 1 ocupado por pantalla completa y Monitor 2 libre -> mover al Monitor 2
+                        targetMonitor = 2;
+                    }
+                    else if (mon1EnPantallaCompleta && mon2EnPantallaCompleta)
+                    {
+                        // Ambos monitores ocupados a pantalla completa -> ocultar widget
+                        OcultarWidget();
+                        return;
                     }
                     else
                     {
-                        // Pantalla 1 libre: SIEMPRE en Pantalla 1
+                        // Monitor 1 libre -> siempre en Pantalla 1 por defecto
                         targetMonitor = 1;
                     }
                 }
 
-                // Si estamos en Monitor 1, verificar también auto-hide de la barra de tareas
+                // Verificación de pantalla completa y estado de la barra de tareas en el monitor objetivo
                 if (targetMonitor == 1)
                 {
+                    // Si el monitor 1 tiene pantalla completa, OCULTAR el widget
+                    if (mon1EnPantallaCompleta)
+                    {
+                        OcultarWidget();
+                        return;
+                    }
+
                     if (hTaskbar != IntPtr.Zero)
                     {
                         if (!IsWindowVisible(hTaskbar))
@@ -598,6 +605,33 @@ namespace TaskbarMusicWidget
                 }
                 else if (targetMonitor == 2 && hayMon2)
                 {
+                    // Si el monitor 2 tiene un vídeo o juego en pantalla completa, OCULTAR el widget (igual que en Monitor 1)
+                    if (mon2EnPantallaCompleta)
+                    {
+                        OcultarWidget();
+                        return;
+                    }
+
+                    // Si la barra secundaria de Windows está oculta o en auto-hide en Monitor 2, OCULTAR el widget
+                    if (hSecTaskbar != IntPtr.Zero)
+                    {
+                        if (!IsWindowVisible(hSecTaskbar))
+                        {
+                            OcultarWidget();
+                            return;
+                        }
+
+                        if (GetWindowRect(hSecTaskbar, out RECT secTbRect))
+                        {
+                            int secTbHeight = secTbRect.Bottom - secTbRect.Top;
+                            if (secTbRect.Top >= mon2.rcMonitor.Bottom - 6 || secTbHeight <= 6)
+                            {
+                                OcultarWidget();
+                                return;
+                            }
+                        }
+                    }
+
                     PosicionarEnMonitor2(mon2);
                 }
 
