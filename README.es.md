@@ -12,9 +12,13 @@
 Un widget nativo, ligero y elegante para la barra de tareas de Windows que proporciona controles multimedia integrados en tiempo real con una interfaz flotante (*Flyout*) inspirada en el diseño Fluent y Spotify.
 
 <p align="center">
-  <video src="https://github.com/KillianTR/TaskbarMusicWidget/raw/main/promo/TaskbarMusicWidget_Cinematic_1080p60.mp4" controls width="100%" style="max-width: 800px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
-    <a href="promo/TaskbarMusicWidget_Cinematic_1080p60.mp4">▶️ Ver Vídeo Promocional Cinematográfico (1080p 60fps)</a>
-  </video>
+  <img src="assets/demo.gif" alt="Taskbar Music Widget Demo" width="760" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+</p>
+
+<p align="center">
+  <a href="assets/TaskbarMusicWidget_Promo_1080p60.mp4">
+    <img src="https://img.shields.io/badge/▶️%20Ver%20Vídeo%20Completo%20(1080p%2060fps)-1ED760?style=for-the-badge&logoColor=white" alt="Ver Vídeo Completo (1080p 60fps)" />
+  </a>
 </p>
 
 ---
