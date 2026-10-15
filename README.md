@@ -12,7 +12,9 @@
 A native, lightweight, and elegant Windows taskbar widget that delivers real-time media controls and an interactive flyout card inspired by Fluent Design and Spotify.
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Taskbar Music Widget Demo" width="720" style="border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);" />
+  <video src="https://github.com/KillianTR/TaskbarMusicWidget/raw/main/promo/TaskbarMusicWidget_Cinematic_1080p60.mp4" controls width="100%" style="max-width: 800px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+    <a href="promo/TaskbarMusicWidget_Cinematic_1080p60.mp4">▶️ Watch Cinematic Promo Video (1080p 60fps)</a>
+  </video>
 </p>
 
 ---
