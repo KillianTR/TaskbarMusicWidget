@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Automation;
 using Windows.Media;
@@ -71,10 +72,10 @@ namespace TaskbarMusicWidget
         }
 
         #region Win32 API
-        [DllImport("user32.dll", SetLastError = true)]
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 
-        [DllImport("user32.dll", SetLastError = true)]
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string? className, string? windowTitle);
 
         [DllImport("user32.dll", SetLastError = true)]
@@ -169,13 +170,13 @@ namespace TaskbarMusicWidget
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
 
-        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
         [DllImport("user32.dll")]
@@ -192,7 +193,7 @@ namespace TaskbarMusicWidget
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool IsWindowVisible(IntPtr hWnd);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
         [DllImport("dwmapi.dll")]
@@ -312,6 +313,9 @@ namespace TaskbarMusicWidget
                 TxtTitle.Text = I18n.StartupError;
                 TxtArtist.Text = I18n.CheckPermissions;
             }
+
+            // Pre-registrar en segundo plano los emojis extendidos de Windows 11 (Unicode 15.1, 16.0 y 17.0)
+            _ = Task.Run(PrecargarEmojisModernosWindows11);
 
             _watchdogTimer.Start();
         }
@@ -1670,6 +1674,9 @@ namespace TaskbarMusicWidget
                         }
                     }
 
+                    AsegurarEmojisRegistrados(_currentTitle);
+                    AsegurarEmojisRegistrados(_currentArtist);
+
                     TxtTitle.Text = _currentTitle;
                     TxtArtist.Text = _currentArtist;
                     TxtTitle.ToolTip = _currentTitle;
@@ -2479,6 +2486,77 @@ namespace TaskbarMusicWidget
             _flyoutWindow?.Close();
             this.Close();
             Application.Current.Shutdown();
+        }
+        #endregion
+
+        #region Soporte de Emojis Modernos Windows 11
+        private static readonly MethodInfo? _registerEmojiMethod = typeof(Emoji.Wpf.EmojiData).GetMethod(
+            "RegisterEmoji", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        private static bool _precargaEmojisIniciada = false;
+
+        public static void AsegurarEmojisRegistrados(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            try
+            {
+                var lookup = Emoji.Wpf.EmojiData.LookupByText;
+                var typeface = Emoji.Wpf.EmojiData.Typeface;
+                if (typeface == null || _registerEmojiMethod == null) return;
+
+                for (int i = 0; i < text.Length; i++)
+                {
+                    int cp = char.ConvertToUtf32(text, i);
+                    if (char.IsSurrogatePair(text, i)) i++;
+
+                    // Caracteres en rangos de símbolos y emojis
+                    if (cp >= 0x2600)
+                    {
+                        string s = char.ConvertFromUtf32(cp);
+                        if (!lookup.ContainsKey(s) && typeface.CanRender(s))
+                        {
+                            _registerEmojiMethod.Invoke(null, new object[] { $"u_{cp:x}", s, "\U0001f440" });
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private static void PrecargarEmojisModernosWindows11()
+        {
+            if (_precargaEmojisIniciada) return;
+            _precargaEmojisIniciada = true;
+
+            try
+            {
+                var dummy = Emoji.Wpf.EmojiData.AllEmoji;
+                var lookup = Emoji.Wpf.EmojiData.LookupByText;
+                var typeface = Emoji.Wpf.EmojiData.Typeface;
+                if (typeface == null || _registerEmojiMethod == null) return;
+
+                // Rangos donde se han añadido nuevos emojis en Unicode 15.1, 16.0 y 17.0 (incluyendo 0x1FAEA)
+                int[][] ranges = new int[][]
+                {
+                    new int[] { 0x1FA70, 0x1FAFF }, // Symbols and Pictographs Extended-A
+                    new int[] { 0x1F680, 0x1F6FF }, // Transport and Map
+                    new int[] { 0x1F300, 0x1F5FF }, // Misc Symbols and Pictographs
+                    new int[] { 0x2600, 0x27BF }     // Dingbats y Misc Symbols
+                };
+
+                foreach (var range in ranges)
+                {
+                    for (int cp = range[0]; cp <= range[1]; cp++)
+                    {
+                        string s = char.ConvertFromUtf32(cp);
+                        if (!lookup.ContainsKey(s) && typeface.CanRender(s))
+                        {
+                            _registerEmojiMethod.Invoke(null, new object[] { $"u_{cp:x}", s, "\U0001f440" });
+                        }
+                    }
+                }
+            }
+            catch { }
         }
         #endregion
     }

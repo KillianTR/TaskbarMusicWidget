@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.9.5-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.9.6-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -27,6 +27,7 @@ A native, lightweight, and elegant Windows taskbar widget that delivers real-tim
 
 - **Seamless Taskbar Integration:** Docks cleanly into the system tray area with zero distracting frames or mismatched backgrounds.
 - **Universal Media Detection (GSMTC):** Automatically supports Spotify, YouTube, Twitch, Netflix, SoundCloud, VLC, Chrome, Opera, Edge, Brave, and any Windows Media-compatible player.
+- **Native Windows 11 Full-Color Emojis:** Native OpenType COLR/CPAL vector emoji rendering using `Segoe UI Emoji` with on-the-fly dynamic registration for modern Unicode 16.0 / 17.0 symbols (such as `👀`, `🔥`, `🫪`), eliminating monochrome glyphs and broken tofu boxes (`[]`).
 - **Expandable Interactive Flyout Card:** Hovering over the widget displays an interactive floating card with high-resolution album art, track title, artist name, a full progress bar with manual scrubbing, and playback controls.
 - **Interactive Volume Bar & Percentage Display:** Spotify-styled volume slider placed directly below the track timeline, featuring an instant mute/unmute button, click-to-position & drag slider, live volume percentage (e.g., `45%`), plus mouse wheel control over the taskbar widget.
 - **Letterbox-Free YouTube Thumbnail Centering:** Automatically detects and strips away letterbox black bars from 4:3 YouTube video thumbnails (`hqdefault.jpg`, `sddefault.jpg`), extracting and centering a pristine 1:1 square video frame in both the taskbar widget and flyout card.
@@ -82,6 +83,11 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.9.6
+- **Native Windows 11 Full-Color Vector Emojis:** Integrated OpenType COLR/CPAL vector emoji rendering directly utilizing Windows 11's `Segoe UI Emoji` font. All emojis in song and video titles are rendered in full, crisp color.
+- **Dynamic Modern Emoji Registration (Unicode 16.0 / 17.0):** Added on-the-fly glyph scanning and background preloading for recent Unicode specifications (including `🫪`, `🫩`, `🪏`, etc.), completely eliminating missing-glyph tofu boxes (`[]`).
+- **P/Invoke Security & Unicode Hardening:** Hardened Win32 interop APIs (`FindWindow`, `FindWindowEx`, `GetWindowText`, `GetClassName`) to explicitly enforce `CharSet.Unicode` and encapsulated internal delegates, preventing string marshaling vulnerabilities.
 
 ### v0.9.5
 - **Letterbox-Free YouTube Thumbnail Centering:** Intelligent aspect-ratio processing that automatically detects and strips away letterbox black bars from 4:3 YouTube thumbnails (`hqdefault.jpg`, `sddefault.jpg`), extracting the true 1:1 square centered video frame. Synchronized immediately across the taskbar widget and flyout card with high-quality scaling.
@@ -140,6 +146,12 @@ The ready-to-use executable will be generated at:
 - **Expanded Containers:** Increased widths (280px taskbar, 340px flyout) for better readability.
 - **Bidirectional Smart Shuffle Sync:** Full support for Spotify's 3-state cycle with sparkle indicator (`✦`).
 - **Maximized Window Preservation:** Removed disruptive DWM calls when focusing players across secondary monitors.
+
+---
+
+## 👤 Author
+
+Developed by **[KillianTR](https://github.com/KillianTR)**.
 
 ---
 

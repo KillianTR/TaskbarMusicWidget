@@ -1,6 +1,7 @@
 <Window x:Class="TaskbarMusicWidget.FlyoutWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:emoji="clr-namespace:Emoji.Wpf;assembly=Emoji.Wpf"
         Title="MusicFlyout"
         Width="340" Height="198"
         WindowStyle="None"
@@ -126,22 +127,24 @@
                                 Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
                         <Grid x:Name="FlyoutTitleContainer" ClipToBounds="True" Height="19">
                             <Canvas Height="19">
-                                <TextBlock x:Name="FlyoutTitle" Text="Sin música" Foreground="#FFFFFF" 
-                                           FontSize="12.5" FontWeight="SemiBold">
-                                    <TextBlock.RenderTransform>
+                                <emoji:TextBlock x:Name="FlyoutTitle" Text="Sin música" Foreground="#FFFFFF" 
+                                                 FontFamily="Segoe UI, Segoe UI Emoji"
+                                                 FontSize="12.5" FontWeight="SemiBold">
+                                    <emoji:TextBlock.RenderTransform>
                                         <TranslateTransform x:Name="FlyoutTitleTransform" X="0"/>
-                                    </TextBlock.RenderTransform>
-                                </TextBlock>
+                                    </emoji:TextBlock.RenderTransform>
+                                </emoji:TextBlock>
                             </Canvas>
                         </Grid>
                         <Grid x:Name="FlyoutArtistContainer" ClipToBounds="True" Height="16" Margin="0,2,0,0">
                             <Canvas Height="16">
-                                <TextBlock x:Name="FlyoutArtist" Text="Reproductor inactivo" Foreground="#A0A0A0" 
-                                           FontSize="10.5">
-                                    <TextBlock.RenderTransform>
+                                <emoji:TextBlock x:Name="FlyoutArtist" Text="Reproductor inactivo" Foreground="#A0A0A0" 
+                                                 FontFamily="Segoe UI, Segoe UI Emoji"
+                                                 FontSize="10.5">
+                                    <emoji:TextBlock.RenderTransform>
                                         <TranslateTransform x:Name="FlyoutArtistTransform" X="0"/>
-                                    </TextBlock.RenderTransform>
-                                </TextBlock>
+                                    </emoji:TextBlock.RenderTransform>
+                                </emoji:TextBlock>
                             </Canvas>
                         </Grid>
                     </StackPanel>

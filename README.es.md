@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Versión](https://img.shields.io/badge/versión-v0.9.5-1ED760?style=flat-square)
+![Versión](https://img.shields.io/badge/versión-v0.9.6-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -27,6 +27,7 @@ Un widget nativo, ligero y elegante para la barra de tareas de Windows que propo
 
 - **Integración Fluida con la Barra de Tareas:** Se acopla de manera limpia al espacio de la bandeja del sistema sin marcos molestos ni fondos desentonados.
 - **Detección Universal de Medios (GSMTC):** Compatible automáticamente con Spotify, YouTube, Twitch, Netflix, Soundcloud, VLC, Chrome, Opera, Edge, Brave y cualquier reproductor compatible con Windows Media.
+- **Emojis a Todo Color Nativos de Windows 11:** Renderizado vectorial en color real mediante `Segoe UI Emoji` con detección y registro dinámico de símbolos Unicode 16.0 / 17.0 (como `👀`, `🔥`, `🫪`), eliminando por completo cajas vacías (`[]`) y glifos planos en blanco y negro.
 - **Tarjeta Flotante Expandible (*Flyout*):** Al pasar el ratón sobre el widget, se despliega una tarjeta flotante interactiva con carátula en alta resolución, título, artista, barra de progreso con desplazamiento manual (*scrubbing*) y controles completos.
 - **Barra de Volumen Interactiva con Porcentaje Numérico:** Barra de volumen estilo Spotify situada justo debajo del tiempo de la pista, con botón de silenciar/activar sonido, barra deslizable interactiva con clic y arrastre, porcentaje exacto en tiempo real (ej. `45%`), y ajuste con la rueda del ratón sobre el widget.
 - **Centrado y Recorte Inteligente de Miniaturas de YouTube:** Detecta y suprime automáticamente las barras negras de letterboxing 4:3 en miniaturas de YouTube (`hqdefault.jpg`, `sddefault.jpg`), extrayendo un cuadrado 1:1 perfectamente centrado y nítido tanto en el widget de la barra como en la tarjeta flotante.
@@ -82,6 +83,11 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.9.6
+- **Emojis Vectoriales en Color Real de Windows 11:** Integración de renderizado de emojis vectoriales OpenType COLR/CPAL utilizando la fuente nativa `Segoe UI Emoji` de Windows 11. Todos los emojis en títulos de canciones y vídeos se muestran a todo color con el estilo Fluent del sistema.
+- **Registro Dinámico de Emojis Modernos (Unicode 16.0 / 17.0):** Escaneo y precarga en segundo plano de glifos recientes de Unicode (como `🫪`, `🫩`, `🪏`, etc.), eliminando cualquier caja rota o signo de interrogación (`[]`).
+- **Seguridad y Blindaje Unicode en P/Invoke:** Especificación explícita de `CharSet.Unicode` en APIs nativas Win32 (`FindWindow`, `FindWindowEx`, `GetWindowText`, `GetClassName`) y encapsulación de delegados internos.
 
 ### v0.9.5
 - **Centrado y Recorte de Miniaturas de YouTube (Sin Barras Negras):** Procesamiento automático de relación de aspecto que detecta y suprime las bandas negras de letterboxing 4:3 en miniaturas de YouTube (`hqdefault.jpg`, `sddefault.jpg`), obteniendo el fotograma central 1:1 real del vídeo con escalado de alta calidad sincronizado entre el widget y la tarjeta flotante.
@@ -140,6 +146,12 @@ El ejecutable listo para usar se generará en:
 - **Contenedores Ampliados:** Anchos optimizados (280px barra, 340px flyout) para mejor legibilidad.
 - **Sincronización Bidireccional de Smart Shuffle:** Soporte completo para el ciclo de 3 estados de Spotify con indicador de destello (`✦`).
 - **Preservación de Ventanas Maximizadas:** Eliminación de llamadas DWM disruptivas al enfocar reproductores en monitores secundarios.
+
+---
+
+## 👤 Autor
+
+Desarrollado por **[KillianTR](https://github.com/KillianTR)**.
 
 ---
 

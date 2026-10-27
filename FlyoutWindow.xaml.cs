@@ -118,6 +118,9 @@ namespace TaskbarMusicWidget
         #region Actualización de Datos y Controles Multimedia
         public void UpdateTrackInfo(ImageSource? cover, string title, string artist, bool isPlaying)
         {
+            MainWindow.AsegurarEmojisRegistrados(title);
+            MainWindow.AsegurarEmojisRegistrados(artist);
+
             FlyoutCover.Source = cover;
             FlyoutTitle.Text = string.IsNullOrWhiteSpace(title) ? I18n.NoMusic : title;
             FlyoutArtist.Text = string.IsNullOrWhiteSpace(artist) ? I18n.PlayerInactive : artist;
