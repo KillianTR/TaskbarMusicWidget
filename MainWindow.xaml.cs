@@ -2317,20 +2317,17 @@ namespace TaskbarMusicWidget
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
                 transform.X = 0;
 
-                // Margen generoso de 40px para garantizar que se lean hasta los últimos caracteres y paréntesis sin cortar
-                double scrollDistance = -(textWidth - containerWidth + 40);
+                // Desplazamiento exacto para mostrar el título completo hasta el borde sin dejar espacios vacíos
+                double scrollDistance = -(textWidth - containerWidth);
                 double speed = 28.0; // Píxeles por segundo para lectura suave y fluida
-                double scrollTimeSec = Math.Max(2.0, Math.Abs(scrollDistance) / speed);
-                double pauseStart = 0.8; // Pausa inicial reactiva para que el usuario aprecie el movimiento casi de inmediato
-                double pauseEnd = 1.5;   // Pausa en el extremo para leer el final del título
-                double pauseReturn = 0.6; // Pausa breve de regreso
+                double scrollTimeSec = Math.Max(1.5, Math.Abs(scrollDistance) / speed);
+                double pauseDuration = 1.2; // Pausa equilibrada al inicio y al mostrar el título completo antes de rebotar
 
                 TimeSpan t0 = TimeSpan.Zero;
-                TimeSpan t1 = TimeSpan.FromSeconds(pauseStart);
+                TimeSpan t1 = TimeSpan.FromSeconds(pauseDuration);
                 TimeSpan t2 = t1 + TimeSpan.FromSeconds(scrollTimeSec);
-                TimeSpan t3 = t2 + TimeSpan.FromSeconds(pauseEnd);
+                TimeSpan t3 = t2 + TimeSpan.FromSeconds(pauseDuration);
                 TimeSpan t4 = t3 + TimeSpan.FromSeconds(scrollTimeSec);
-                TimeSpan t5 = t4 + TimeSpan.FromSeconds(pauseReturn);
 
                 var anim = new DoubleAnimationUsingKeyFrames
                 {
@@ -2342,7 +2339,6 @@ namespace TaskbarMusicWidget
                 anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t2)));
                 anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t3)));
                 anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t4)));
-                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t5)));
 
                 transform.BeginAnimation(TranslateTransform.XProperty, anim);
             }

@@ -423,19 +423,16 @@ namespace TaskbarMusicWidget
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
                 transform.X = 0;
 
-                double scrollDistance = -(textWidth - containerWidth + 40);
+                double scrollDistance = -(textWidth - containerWidth);
                 double speed = 28.0;
-                double scrollTimeSec = Math.Max(2.0, Math.Abs(scrollDistance) / speed);
-                double pauseStart = 0.8;
-                double pauseEnd = 1.5;
-                double pauseReturn = 0.6;
+                double scrollTimeSec = Math.Max(1.5, Math.Abs(scrollDistance) / speed);
+                double pauseDuration = 1.2;
 
                 TimeSpan t0 = TimeSpan.Zero;
-                TimeSpan t1 = TimeSpan.FromSeconds(pauseStart);
+                TimeSpan t1 = TimeSpan.FromSeconds(pauseDuration);
                 TimeSpan t2 = t1 + TimeSpan.FromSeconds(scrollTimeSec);
-                TimeSpan t3 = t2 + TimeSpan.FromSeconds(pauseEnd);
+                TimeSpan t3 = t2 + TimeSpan.FromSeconds(pauseDuration);
                 TimeSpan t4 = t3 + TimeSpan.FromSeconds(scrollTimeSec);
-                TimeSpan t5 = t4 + TimeSpan.FromSeconds(pauseReturn);
 
                 var anim = new DoubleAnimationUsingKeyFrames
                 {
@@ -447,7 +444,6 @@ namespace TaskbarMusicWidget
                 anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t2)));
                 anim.KeyFrames.Add(new LinearDoubleKeyFrame(scrollDistance, KeyTime.FromTimeSpan(t3)));
                 anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t4)));
-                anim.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(t5)));
 
                 transform.BeginAnimation(TranslateTransform.XProperty, anim);
             }
