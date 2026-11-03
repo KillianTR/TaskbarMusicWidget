@@ -123,9 +123,9 @@
                     </Border>
 
                     <!-- Textos con Marquee dinámico (Clic para enfocar la app) -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="10,0,0,0"
                                 Cursor="Hand" MouseLeftButtonUp="TrackInfo_MouseLeftButtonUp" ToolTip="Abrir reproductor">
-                        <Grid x:Name="FlyoutTitleContainer" ClipToBounds="True" Height="19">
+                        <Grid x:Name="FlyoutTitleContainer" HorizontalAlignment="Stretch" ClipToBounds="True" Height="19">
                             <Canvas Height="19">
                                 <emoji:TextBlock x:Name="FlyoutTitle" Text="Sin música" Foreground="#FFFFFF" 
                                                  FontFamily="Segoe UI, Segoe UI Emoji"
@@ -136,7 +136,7 @@
                                 </emoji:TextBlock>
                             </Canvas>
                         </Grid>
-                        <Grid x:Name="FlyoutArtistContainer" ClipToBounds="True" Height="16" Margin="0,2,0,0">
+                        <Grid x:Name="FlyoutArtistContainer" HorizontalAlignment="Stretch" ClipToBounds="True" Height="16" Margin="0,2,0,0">
                             <Canvas Height="16">
                                 <emoji:TextBlock x:Name="FlyoutArtist" Text="Reproductor inactivo" Foreground="#A0A0A0" 
                                                  FontFamily="Segoe UI, Segoe UI Emoji"

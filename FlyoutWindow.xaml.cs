@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using Windows.Media;
 
 namespace TaskbarMusicWidget
@@ -70,7 +71,18 @@ namespace TaskbarMusicWidget
             bool wasHidden = this.Visibility != Visibility.Visible;
             this.Visibility = Visibility.Visible;
             ActualizarEstadoVolumen();
-            ActualizarMarqueeFlyout();
+
+            // Asegurar que el diseño y medidas estén actualizados antes de iniciar el desplazamiento
+            this.UpdateLayout();
+            ActualizarMarqueeFlyout(reiniciar: true);
+
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (this.Visibility == Visibility.Visible)
+                {
+                    ActualizarMarqueeFlyout(reiniciar: false);
+                }
+            }, DispatcherPriority.Loaded);
 
             if (wasHidden || this.Opacity < 0.95)
             {
@@ -89,9 +101,21 @@ namespace TaskbarMusicWidget
                 if (this.Opacity == 0)
                 {
                     this.Visibility = Visibility.Collapsed;
+                    DetenerMarqueeFlyout();
                 }
             };
             this.BeginAnimation(OpacityProperty, fadeOut);
+        }
+
+        public void DetenerMarqueeFlyout()
+        {
+            FlyoutTitleTransform.BeginAnimation(TranslateTransform.XProperty, null);
+            FlyoutTitleTransform.X = 0;
+            FlyoutTitle.Tag = null;
+
+            FlyoutArtistTransform.BeginAnimation(TranslateTransform.XProperty, null);
+            FlyoutArtistTransform.X = 0;
+            FlyoutArtist.Tag = null;
         }
 
         private void Window_MouseEnter(object sender, MouseEventArgs e)
@@ -135,7 +159,15 @@ namespace TaskbarMusicWidget
                 BtnFlyoutPlayPause.ToolTip = isPlaying ? (I18n.IsSpanish ? "Pausar" : "Pause") : (I18n.IsSpanish ? "Reproducir" : "Play");
             }
 
-            ActualizarMarqueeFlyout();
+            if (this.Visibility == Visibility.Visible)
+            {
+                this.UpdateLayout();
+                ActualizarMarqueeFlyout(reiniciar: true);
+            }
+            else
+            {
+                DetenerMarqueeFlyout();
+            }
         }
 
         public void UpdateTimeline(TimeSpan position, TimeSpan duration)
@@ -390,15 +422,21 @@ namespace TaskbarMusicWidget
         #endregion
 
         #region Animación de Marquee Suave para Título y Artista
-        public void ActualizarMarqueeFlyout()
+        public void ActualizarMarqueeFlyout(bool reiniciar = false)
         {
-            ConfigurarMarquee(FlyoutTitleContainer, FlyoutTitle, FlyoutTitleTransform);
-            ConfigurarMarquee(FlyoutArtistContainer, FlyoutArtist, FlyoutArtistTransform);
+            if (this.Visibility != Visibility.Visible) return;
+
+            ConfigurarMarquee(FlyoutTitleContainer, FlyoutTitle, FlyoutTitleTransform, reiniciar);
+            ConfigurarMarquee(FlyoutArtistContainer, FlyoutArtist, FlyoutArtistTransform, reiniciar);
         }
 
-        private void ConfigurarMarquee(FrameworkElement container, TextBlock tb, TranslateTransform transform)
+        private void ConfigurarMarquee(FrameworkElement container, TextBlock tb, TranslateTransform transform, bool reiniciar = false)
         {
-            if (string.IsNullOrEmpty(tb.Text) || tb.Text == I18n.NoMusic || tb.Text == I18n.PlayerInactive)
+            if (string.IsNullOrWhiteSpace(tb.Text) || 
+                tb.Text == I18n.NoMusic || 
+                tb.Text == I18n.PlayerInactive ||
+                tb.Text == "Sin música" ||
+                tb.Text == "Reproductor inactivo")
             {
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
                 transform.X = 0;
@@ -406,7 +444,7 @@ namespace TaskbarMusicWidget
                 return;
             }
 
-            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 255;
+            double containerWidth = container.ActualWidth > 0 ? container.ActualWidth : 238;
 
             tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             double textWidth = Math.Max(tb.DesiredSize.Width, MedirAnchoTexto(tb));
@@ -414,7 +452,7 @@ namespace TaskbarMusicWidget
             if (textWidth > containerWidth + 4)
             {
                 string cacheKey = tb.Text;
-                if (tb.Tag as string == cacheKey && transform.HasAnimatedProperties)
+                if (!reiniciar && tb.Tag as string == cacheKey && transform.HasAnimatedProperties)
                 {
                     return;
                 }
@@ -423,10 +461,11 @@ namespace TaskbarMusicWidget
                 transform.BeginAnimation(TranslateTransform.XProperty, null);
                 transform.X = 0;
 
+                // Desplazamiento exacto para mostrar el título completo hasta el borde sin dejar espacios vacíos
                 double scrollDistance = -(textWidth - containerWidth);
-                double speed = 28.0;
+                double speed = 28.0; // Píxeles por segundo para lectura suave y fluida
                 double scrollTimeSec = Math.Max(1.5, Math.Abs(scrollDistance) / speed);
-                double pauseDuration = 1.2;
+                double pauseDuration = 1.2; // Pausa equilibrada al inicio y al mostrar el título completo antes de rebotar
 
                 TimeSpan t0 = TimeSpan.Zero;
                 TimeSpan t1 = TimeSpan.FromSeconds(pauseDuration);

@@ -2435,6 +2435,7 @@ namespace TaskbarMusicWidget
                     if (flyoutLeft < 10) flyoutLeft = 10;
                 }
 
+                _flyoutWindow.UpdateTrackInfo(_currentCover, _currentTitle, _currentArtist, _isPlaying);
                 _flyoutWindow.ShowFlyout(flyoutLeft, flyoutTop);
             }
         }
