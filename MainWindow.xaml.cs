@@ -1492,6 +1492,46 @@ namespace TaskbarMusicWidget
             return t;
         }
 
+        private static string ObtenerNombrePlataformaReproductora(string? appModelId)
+        {
+            if (string.IsNullOrEmpty(appModelId)) return "";
+
+            if (EsNavegador(appModelId))
+            {
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Netflix")) return "Netflix";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Apple TV")) return "Apple TV";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "DAZN")) return "DAZN";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "YouTube")) return "YouTube";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Twitch")) return "Twitch";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Prime Video")) return "Prime Video";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Disney+")) return "Disney+";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Max") || EsVentanaDeNavegadorConTitulo(appModelId, "HBO Max")) return "Max";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "SoundCloud")) return "SoundCloud";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Spotify")) return "Spotify";
+                if (EsVentanaDeNavegadorConTitulo(appModelId, "Crunchyroll")) return "Crunchyroll";
+
+                if (appModelId.Contains("Opera", StringComparison.OrdinalIgnoreCase)) return "Opera GX";
+                if (appModelId.Contains("Chrome", StringComparison.OrdinalIgnoreCase)) return "Google Chrome";
+                if (appModelId.Contains("MSEdge", StringComparison.OrdinalIgnoreCase) || appModelId.Contains("Edge", StringComparison.OrdinalIgnoreCase)) return "Microsoft Edge";
+                if (appModelId.Contains("Brave", StringComparison.OrdinalIgnoreCase)) return "Brave";
+                if (appModelId.Contains("Vivaldi", StringComparison.OrdinalIgnoreCase)) return "Vivaldi";
+                if (appModelId.Contains("Firefox", StringComparison.OrdinalIgnoreCase)) return "Mozilla Firefox";
+            }
+
+            if (appModelId.Contains("Spotify", StringComparison.OrdinalIgnoreCase)) return "Spotify";
+            if (appModelId.Contains("Netflix", StringComparison.OrdinalIgnoreCase)) return "Netflix";
+            if (appModelId.Contains("AppleTV", StringComparison.OrdinalIgnoreCase) || appModelId.Contains("Apple.TV", StringComparison.OrdinalIgnoreCase)) return "Apple TV";
+            if (appModelId.Contains("DAZN", StringComparison.OrdinalIgnoreCase)) return "DAZN";
+            if (appModelId.Contains("vlc", StringComparison.OrdinalIgnoreCase)) return "VLC";
+            if (appModelId.Contains("Music.UI", StringComparison.OrdinalIgnoreCase) || appModelId.Contains("ZuneMusic", StringComparison.OrdinalIgnoreCase)) return "Media Player";
+            if (appModelId.Contains("AIMP", StringComparison.OrdinalIgnoreCase)) return "AIMP";
+            if (appModelId.Contains("Tidal", StringComparison.OrdinalIgnoreCase)) return "Tidal";
+            if (appModelId.Contains("Deezer", StringComparison.OrdinalIgnoreCase)) return "Deezer";
+            if (appModelId.Contains("AmazonMusic", StringComparison.OrdinalIgnoreCase)) return "Amazon Music";
+
+            return "";
+        }
+
         #region Detección y Carátulas para YouTube y YouTube Shorts
         private static bool EsNavegador(string? appModelId)
         {
@@ -2160,26 +2200,34 @@ namespace TaskbarMusicWidget
 
                     if (isNetflix)
                     {
-                        string serie = ExtraerTituloSerieNetflix(props);
-                        _currentTitle = "Netflix";
-                        _currentArtist = serie;
+                        string serieYCapitulo = ExtraerTituloSerieNetflix(props);
+                        _currentTitle = serieYCapitulo;
+                        _currentArtist = "Netflix";
                     }
                     else if (isAppleTV)
                     {
-                        string serie = ExtraerTituloSerieAppleTV(props);
-                        _currentTitle = "Apple TV";
-                        _currentArtist = serie;
+                        string serieYCapitulo = ExtraerTituloSerieAppleTV(props);
+                        _currentTitle = serieYCapitulo;
+                        _currentArtist = "Apple TV";
                     }
                     else if (isDazn)
                     {
                         string evento = ExtraerTituloEventoDazn(props);
-                        _currentTitle = "DAZN";
-                        _currentArtist = evento;
+                        _currentTitle = evento;
+                        _currentArtist = "DAZN";
                     }
                     else
                     {
                         _currentTitle = string.IsNullOrWhiteSpace(props.Title) ? "Pista desconocida" : props.Title;
-                        _currentArtist = string.IsNullOrWhiteSpace(props.Artist) ? "Artista desconocido" : props.Artist;
+                        if (!string.IsNullOrWhiteSpace(props.Artist) && !props.Artist.Trim().Equals("Artista desconocido", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _currentArtist = props.Artist.Trim();
+                        }
+                        else
+                        {
+                            string plataforma = ObtenerNombrePlataformaReproductora(_currentSession.SourceAppUserModelId);
+                            _currentArtist = !string.IsNullOrWhiteSpace(plataforma) ? plataforma : "Artista desconocido";
+                        }
                     }
 
                     BitmapImage? bmp = null;
