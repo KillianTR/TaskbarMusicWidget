@@ -1089,46 +1089,91 @@ namespace TaskbarMusicWidget
 
         private string ExtraerTituloSerieNetflix(GlobalSystemMediaTransportControlsSessionMediaProperties props)
         {
+            string serie = "";
             if (!string.IsNullOrWhiteSpace(props.Subtitle) && !props.Subtitle.Trim().Equals("Netflix", StringComparison.OrdinalIgnoreCase))
             {
-                return props.Subtitle.Trim();
+                serie = props.Subtitle.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && !props.AlbumTitle.Trim().Equals("Netflix", StringComparison.OrdinalIgnoreCase))
+            {
+                serie = props.AlbumTitle.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && !props.AlbumArtist.Trim().Equals("Netflix", StringComparison.OrdinalIgnoreCase))
+            {
+                serie = props.AlbumArtist.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && !props.AlbumTitle.Trim().Equals("Netflix", StringComparison.OrdinalIgnoreCase))
+            string capitulo = props.Title ?? "";
+            capitulo = LimpiarSufijosNetflix(capitulo);
+
+            // Si ambos campos están vacíos, intentar rescatar el título de la pestaña del navegador
+            if (string.IsNullOrWhiteSpace(capitulo) && string.IsNullOrWhiteSpace(serie))
             {
-                return props.AlbumTitle.Trim();
+                string tabTitle = ObtenerTituloPestañaNavegador(_currentSession?.SourceAppUserModelId, "Netflix");
+                if (!string.IsNullOrWhiteSpace(tabTitle))
+                {
+                    capitulo = LimpiarSufijosNetflix(tabTitle);
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && !props.AlbumArtist.Trim().Equals("Netflix", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(serie) && !string.IsNullOrWhiteSpace(capitulo))
             {
-                return props.AlbumArtist.Trim();
+                if (capitulo.Equals(serie, StringComparison.OrdinalIgnoreCase))
+                {
+                    return capitulo;
+                }
+                if (capitulo.Contains(serie, StringComparison.OrdinalIgnoreCase))
+                {
+                    return capitulo;
+                }
+                return $"{serie} — {capitulo}";
             }
 
-            string t = props.Title ?? "";
-            if (t.Contains(" | Netflix", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(capitulo))
             {
-                return t.Substring(0, t.IndexOf(" | Netflix", StringComparison.OrdinalIgnoreCase)).Trim();
+                return capitulo;
             }
-            if (t.Contains(" - Netflix", StringComparison.OrdinalIgnoreCase))
+
+            if (!string.IsNullOrWhiteSpace(serie))
             {
-                return t.Substring(0, t.IndexOf(" - Netflix", StringComparison.OrdinalIgnoreCase)).Trim();
-            }
-            if (t.StartsWith("Netflix - ", StringComparison.OrdinalIgnoreCase))
-            {
-                return t.Substring("Netflix - ".Length).Trim();
-            }
-            if (!t.Trim().Equals("Netflix", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(t))
-            {
-                return t.Trim();
+                return serie;
             }
 
             string a = props.Artist ?? "";
-            if (!a.Trim().Equals("Netflix", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(a))
+            a = LimpiarSufijosNetflix(a);
+            if (!string.IsNullOrWhiteSpace(a))
             {
-                return a.Trim();
+                return a;
             }
 
             return I18n.PlayingFallback;
+        }
+
+        private static string LimpiarSufijosNetflix(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return "";
+            string t = text.Trim();
+            string[] suffixes = { " | Netflix", " - Netflix", ": Netflix" };
+            foreach (var suffix in suffixes)
+            {
+                if (t.Contains(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    t = t.Substring(0, t.IndexOf(suffix, StringComparison.OrdinalIgnoreCase)).Trim();
+                }
+            }
+            string[] prefixes = { "Netflix - ", "Netflix: " };
+            foreach (var prefix in prefixes)
+            {
+                if (t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    t = t.Substring(prefix.Length).Trim();
+                }
+            }
+            if (t.Equals("Netflix", StringComparison.OrdinalIgnoreCase))
+            {
+                return "";
+            }
+            return t;
         }
 
         private static ImageSource? _appleTvDefaultCover;
@@ -1173,67 +1218,100 @@ namespace TaskbarMusicWidget
 
         private string ExtraerTituloSerieAppleTV(GlobalSystemMediaTransportControlsSessionMediaProperties props)
         {
-            if (!string.IsNullOrWhiteSpace(props.Subtitle) && 
-                !props.Subtitle.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) &&
-                !props.Subtitle.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) &&
-                !props.Subtitle.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase))
+            string serie = "";
+            if (!string.IsNullOrWhiteSpace(props.Subtitle) && !EsTextoGenericoAppleTv(props.Subtitle))
             {
-                return props.Subtitle.Trim();
+                serie = props.Subtitle.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && !EsTextoGenericoAppleTv(props.AlbumTitle))
+            {
+                serie = props.AlbumTitle.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && !EsTextoGenericoAppleTv(props.AlbumArtist))
+            {
+                serie = props.AlbumArtist.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && 
-                !props.AlbumTitle.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) &&
-                !props.AlbumTitle.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) &&
-                !props.AlbumTitle.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase))
+            string capitulo = props.Title ?? "";
+            capitulo = LimpiarSufijosAppleTv(capitulo);
+
+            // Si ambos campos están vacíos, intentar rescatar el título de la pestaña del navegador
+            if (string.IsNullOrWhiteSpace(capitulo) && string.IsNullOrWhiteSpace(serie))
             {
-                return props.AlbumTitle.Trim();
+                string tabTitle = ObtenerTituloPestañaNavegador(_currentSession?.SourceAppUserModelId, "Apple TV");
+                if (!string.IsNullOrWhiteSpace(tabTitle))
+                {
+                    capitulo = LimpiarSufijosAppleTv(tabTitle);
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && 
-                !props.AlbumArtist.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) &&
-                !props.AlbumArtist.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) &&
-                !props.AlbumArtist.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(serie) && !string.IsNullOrWhiteSpace(capitulo))
             {
-                return props.AlbumArtist.Trim();
+                if (capitulo.Equals(serie, StringComparison.OrdinalIgnoreCase))
+                {
+                    return capitulo;
+                }
+                if (capitulo.Contains(serie, StringComparison.OrdinalIgnoreCase))
+                {
+                    return capitulo;
+                }
+                return $"{serie} — {capitulo}";
             }
 
-            string t = props.Title ?? "";
-            string[] suffixes = { " | Apple TV+", " - Apple TV+", " | Apple TV", " - Apple TV" };
+            if (!string.IsNullOrWhiteSpace(capitulo))
+            {
+                return capitulo;
+            }
+
+            if (!string.IsNullOrWhiteSpace(serie))
+            {
+                return serie;
+            }
+
+            string a = props.Artist ?? "";
+            a = LimpiarSufijosAppleTv(a);
+            if (!string.IsNullOrWhiteSpace(a))
+            {
+                return a;
+            }
+
+            return I18n.PlayingFallback;
+        }
+
+        private static bool EsTextoGenericoAppleTv(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return true;
+            string t = text.Trim();
+            return t.Equals("Apple TV", StringComparison.OrdinalIgnoreCase) ||
+                   t.Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) ||
+                   t.Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string LimpiarSufijosAppleTv(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return "";
+            string t = text.Trim();
+            string[] suffixes = { " | Apple TV+", " - Apple TV+", " | Apple TV", " - Apple TV", ": Apple TV+", ": Apple TV" };
             foreach (var suffix in suffixes)
             {
                 if (t.Contains(suffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return t.Substring(0, t.IndexOf(suffix, StringComparison.OrdinalIgnoreCase)).Trim();
+                    t = t.Substring(0, t.IndexOf(suffix, StringComparison.OrdinalIgnoreCase)).Trim();
                 }
             }
-
             string[] prefixes = { "Apple TV+ - ", "Apple TV - ", "Apple TV+: ", "Apple TV: " };
             foreach (var prefix in prefixes)
             {
                 if (t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return t.Substring(prefix.Length).Trim();
+                    t = t.Substring(prefix.Length).Trim();
                 }
             }
-
-            if (!t.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) && 
-                !t.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) && 
-                !t.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase) && 
-                !string.IsNullOrWhiteSpace(t))
+            if (EsTextoGenericoAppleTv(t))
             {
-                return t.Trim();
+                return "";
             }
-
-            string a = props.Artist ?? "";
-            if (!a.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) && 
-                !a.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) && 
-                !a.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase) && 
-                !string.IsNullOrWhiteSpace(a))
-            {
-                return a.Trim();
-            }
-
-            return I18n.PlayingFallback;
+            return t;
         }
 
         private static ImageSource? _daznDefaultCover;
@@ -1242,6 +1320,49 @@ namespace TaskbarMusicWidget
         {
             if (_daznDefaultCover != null) return _daznDefaultCover;
 
+            // 1. Cargar el logo oficial de DAZN desde los recursos integrados del ensamblado
+            string[] uriCandidates =
+            {
+                "pack://application:,,,/TaskbarMusicWidget;component/assets/dazn_logo.png",
+                "pack://application:,,,/assets/dazn_logo.png"
+            };
+
+            foreach (var uriStr in uriCandidates)
+            {
+                try
+                {
+                    var uri = new Uri(uriStr, UriKind.Absolute);
+                    var bmp = new BitmapImage();
+                    bmp.BeginInit();
+                    bmp.UriSource = uri;
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    _daznDefaultCover = bmp;
+                    return _daznDefaultCover;
+                }
+                catch { }
+            }
+
+            // 2. Intentar cargar el archivo directamente desde el directorio de la aplicación
+            try
+            {
+                string localPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets", "dazn_logo.png");
+                if (System.IO.File.Exists(localPath))
+                {
+                    var bmp = new BitmapImage();
+                    bmp.BeginInit();
+                    bmp.UriSource = new Uri(localPath, UriKind.Absolute);
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    _daznDefaultCover = bmp;
+                    return _daznDefaultCover;
+                }
+            }
+            catch { }
+
+            // 3. Fallback vectorial de respaldo en caso extremo
             int width = 96;
             int height = 96;
             var visual = new DrawingVisual();
@@ -1274,64 +1395,101 @@ namespace TaskbarMusicWidget
 
         private string ExtraerTituloEventoDazn(GlobalSystemMediaTransportControlsSessionMediaProperties props)
         {
-            if (!string.IsNullOrWhiteSpace(props.Subtitle) && 
-                !props.Subtitle.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) &&
-                !props.Subtitle.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase))
+            string categoria = "";
+            if (!string.IsNullOrWhiteSpace(props.Subtitle) && !EsTextoGenericoDazn(props.Subtitle))
             {
-                return props.Subtitle.Trim();
+                categoria = props.Subtitle.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && !EsTextoGenericoDazn(props.AlbumTitle))
+            {
+                categoria = props.AlbumTitle.Trim();
+            }
+            else if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && !EsTextoGenericoDazn(props.AlbumArtist))
+            {
+                categoria = props.AlbumArtist.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && 
-                !props.AlbumTitle.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) &&
-                !props.AlbumTitle.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase))
+            string evento = props.Title ?? "";
+            evento = LimpiarSufijosDazn(evento);
+
+            // Si ambos campos están vacíos, intentar rescatar el título de la pestaña del navegador
+            if (string.IsNullOrWhiteSpace(evento) && string.IsNullOrWhiteSpace(categoria))
             {
-                return props.AlbumTitle.Trim();
+                string tabTitle = ObtenerTituloPestañaNavegador(_currentSession?.SourceAppUserModelId, "DAZN");
+                if (!string.IsNullOrWhiteSpace(tabTitle))
+                {
+                    evento = LimpiarSufijosDazn(tabTitle);
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && 
-                !props.AlbumArtist.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) &&
-                !props.AlbumArtist.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(categoria) && !string.IsNullOrWhiteSpace(evento))
             {
-                return props.AlbumArtist.Trim();
+                if (evento.Equals(categoria, StringComparison.OrdinalIgnoreCase))
+                {
+                    return evento;
+                }
+                if (evento.Contains(categoria, StringComparison.OrdinalIgnoreCase))
+                {
+                    return evento;
+                }
+                return $"{categoria} — {evento}";
             }
 
-            string t = props.Title ?? "";
+            if (!string.IsNullOrWhiteSpace(evento))
+            {
+                return evento;
+            }
+
+            if (!string.IsNullOrWhiteSpace(categoria))
+            {
+                return categoria;
+            }
+
+            string a = props.Artist ?? "";
+            a = LimpiarSufijosDazn(a);
+            if (!string.IsNullOrWhiteSpace(a))
+            {
+                return a;
+            }
+
+            return I18n.PlayingFallback;
+        }
+
+        private static bool EsTextoGenericoDazn(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return true;
+            string t = text.Trim();
+            return t.Equals("DAZN", StringComparison.OrdinalIgnoreCase) ||
+                   t.Equals("dazn.com", StringComparison.OrdinalIgnoreCase) ||
+                   t.Contains("Deportes en Directo", StringComparison.OrdinalIgnoreCase) ||
+                   t.Contains("Live & On Demand", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string LimpiarSufijosDazn(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return "";
+            string t = text.Trim();
             string[] suffixes = { " | DAZN", " - DAZN", ": DAZN" };
             foreach (var suffix in suffixes)
             {
                 if (t.Contains(suffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return t.Substring(0, t.IndexOf(suffix, StringComparison.OrdinalIgnoreCase)).Trim();
+                    t = t.Substring(0, t.IndexOf(suffix, StringComparison.OrdinalIgnoreCase)).Trim();
                 }
             }
-
             string[] prefixes = { "DAZN - ", "DAZN: " };
             foreach (var prefix in prefixes)
             {
                 if (t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    return t.Substring(prefix.Length).Trim();
+                    t = t.Substring(prefix.Length).Trim();
                 }
             }
-
-            if (!t.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) && 
-                !t.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase) && 
-                !t.Contains("Deportes en Directo", StringComparison.OrdinalIgnoreCase) &&
-                !t.Contains("Live & On Demand", StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(t))
+            if (EsTextoGenericoDazn(t))
             {
-                return t.Trim();
+                return "";
             }
-
-            string a = props.Artist ?? "";
-            if (!a.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) && 
-                !a.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase) && 
-                !string.IsNullOrWhiteSpace(a))
-            {
-                return a.Trim();
-            }
-
-            return I18n.PlayingFallback;
+            return t;
         }
 
         #region Detección y Carátulas para YouTube y YouTube Shorts
@@ -1347,6 +1505,148 @@ namespace TaskbarMusicWidget
                    appModelId.Contains("Firefox", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static string ObtenerNombreProcesoNavegador(string? appModelId)
+        {
+            if (string.IsNullOrEmpty(appModelId)) return "";
+            if (appModelId.Contains("Opera", StringComparison.OrdinalIgnoreCase)) return "opera";
+            if (appModelId.Contains("Chrome", StringComparison.OrdinalIgnoreCase)) return "chrome";
+            if (appModelId.Contains("MSEdge", StringComparison.OrdinalIgnoreCase) || appModelId.Contains("Edge", StringComparison.OrdinalIgnoreCase)) return "msedge";
+            if (appModelId.Contains("Brave", StringComparison.OrdinalIgnoreCase)) return "brave";
+            if (appModelId.Contains("Vivaldi", StringComparison.OrdinalIgnoreCase)) return "vivaldi";
+            if (appModelId.Contains("Firefox", StringComparison.OrdinalIgnoreCase)) return "firefox";
+            return "";
+        }
+
+        private static bool EsVentanaDeNavegadorConTitulo(string? appModelId, string keyword)
+        {
+            if (!EsNavegador(appModelId)) return false;
+            try
+            {
+                bool found = false;
+                EnumWindows((hWnd, lParam) =>
+                {
+                    if (!IsWindowVisible(hWnd)) return true;
+                    var sb = new StringBuilder(256);
+                    GetWindowText(hWnd, sb, sb.Capacity);
+                    string wTitle = sb.ToString();
+                    if (wTitle.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                    {
+                        GetWindowThreadProcessId(hWnd, out uint pid);
+                        try
+                        {
+                            var proc = Process.GetProcessById((int)pid);
+                            if (proc != null && (EsNavegador(proc.ProcessName) || appModelId.Contains(proc.ProcessName, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                found = true;
+                                return false;
+                            }
+                        }
+                        catch { }
+                    }
+                    return true;
+                }, IntPtr.Zero);
+
+                if (!found)
+                {
+                    string procName = ObtenerNombreProcesoNavegador(appModelId);
+                    if (!string.IsNullOrEmpty(procName))
+                    {
+                        IntPtr mainHwnd = ObtenerVentanaPrincipal(procName);
+                        if (mainHwnd != IntPtr.Zero)
+                        {
+                            var root = AutomationElement.FromHandle(mainHwnd);
+                            if (root != null)
+                            {
+                                var cond = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem);
+                                var tabs = root.FindAll(TreeScope.Descendants, cond);
+                                if (tabs != null)
+                                {
+                                    foreach (AutomationElement tab in tabs)
+                                    {
+                                        if (tab.Current.Name?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true)
+                                        {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return found;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string ObtenerTituloPestañaNavegador(string? appModelId, string keyword)
+        {
+            if (!EsNavegador(appModelId)) return "";
+            try
+            {
+                string foundTitle = "";
+                EnumWindows((hWnd, lParam) =>
+                {
+                    if (!IsWindowVisible(hWnd)) return true;
+                    var sb = new StringBuilder(256);
+                    GetWindowText(hWnd, sb, sb.Capacity);
+                    string wTitle = sb.ToString();
+                    if (wTitle.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                    {
+                        GetWindowThreadProcessId(hWnd, out uint pid);
+                        try
+                        {
+                            var proc = Process.GetProcessById((int)pid);
+                            if (proc != null && (EsNavegador(proc.ProcessName) || appModelId.Contains(proc.ProcessName, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                foundTitle = wTitle;
+                                return false;
+                            }
+                        }
+                        catch { }
+                    }
+                    return true;
+                }, IntPtr.Zero);
+
+                if (!string.IsNullOrEmpty(foundTitle))
+                {
+                    foundTitle = Regex.Replace(foundTitle, @"\s*-\s*(Opera GX|Opera|Google Chrome|Microsoft Edge|Brave|Vivaldi|Mozilla Firefox)$", "", RegexOptions.IgnoreCase).Trim();
+                    return foundTitle;
+                }
+
+                string procName = ObtenerNombreProcesoNavegador(appModelId);
+                if (!string.IsNullOrEmpty(procName))
+                {
+                    IntPtr mainHwnd = ObtenerVentanaPrincipal(procName);
+                    if (mainHwnd != IntPtr.Zero)
+                    {
+                        var root = AutomationElement.FromHandle(mainHwnd);
+                        if (root != null)
+                        {
+                            var cond = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem);
+                            var tabs = root.FindAll(TreeScope.Descendants, cond);
+                            if (tabs != null)
+                            {
+                                foreach (AutomationElement tab in tabs)
+                                {
+                                    string tName = tab.Current.Name ?? "";
+                                    if (tName.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        return tName;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            return "";
+        }
         private static bool EsYouTubeShort(string title, int pixelWidth, int pixelHeight, bool isBrowser)
         {
             if (!isBrowser) return false;
@@ -1834,24 +2134,29 @@ namespace TaskbarMusicWidget
                                             (props.AlbumTitle?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
                                             (_currentSession.SourceAppUserModelId?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true);
 
+                    bool isBrowser = EsNavegador(_currentSession.SourceAppUserModelId);
+
                     bool isNetflix = !hasYouTubeSignal && (
                         (_currentSession.SourceAppUserModelId?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.Title?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.Artist?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
-                        (props.AlbumTitle?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true));
+                        (props.AlbumTitle?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "Netflix")));
 
-                    bool isAppleTV = !hasYouTubeSignal && (
+                    bool isAppleTV = !hasYouTubeSignal && !isNetflix && (
                         (_currentSession.SourceAppUserModelId?.Contains("AppleTV", StringComparison.OrdinalIgnoreCase) == true) ||
                         (_currentSession.SourceAppUserModelId?.Contains("Apple.TV", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.Title?.Contains("Apple TV", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.Artist?.Contains("Apple TV", StringComparison.OrdinalIgnoreCase) == true) ||
-                        (props.AlbumTitle?.Contains("Apple TV", StringComparison.OrdinalIgnoreCase) == true));
+                        (props.AlbumTitle?.Contains("Apple TV", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "Apple TV")));
 
-                    bool isDazn = !hasYouTubeSignal && (
+                    bool isDazn = !hasYouTubeSignal && !isNetflix && !isAppleTV && (
                         (_currentSession.SourceAppUserModelId?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.Title?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.Artist?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
-                        (props.AlbumTitle?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true));
+                        (props.AlbumTitle?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "DAZN")));
 
                     if (isNetflix)
                     {
@@ -1895,7 +2200,6 @@ namespace TaskbarMusicWidget
                         catch { }
                     }
 
-                    bool isBrowser = EsNavegador(_currentSession.SourceAppUserModelId);
                     bool isStreamingService = isNetflix || isAppleTV || isDazn;
                     bool isYouTube = !isStreamingService && EsSesionYouTube(_currentSession.SourceAppUserModelId, _currentTitle, _currentArtist, props.AlbumTitle);
                     bool isShort = isYouTube && EsYouTubeShort(_currentTitle, bmp?.PixelWidth ?? 0, bmp?.PixelHeight ?? 0, isBrowser);
@@ -1951,8 +2255,15 @@ namespace TaskbarMusicWidget
                             _ = CargarThumbnailYouTubeAsync(titleKey, _currentArtist);
                         }
                     }
+                    else if (isDazn)
+                    {
+                        // Usar siempre el logo oficial de DAZN como portada cuando DAZN es el medio
+                        _currentCover = ObtenerPortadaDaznDefault();
+                        AlbumArt.Source = _currentCover;
+                    }
                     else if (bmp != null)
                     {
+                        // Usar miniatura para Netflix, Apple TV, reproductores estándar, etc.
                         _currentCover = bmp;
                         AlbumArt.Source = bmp;
                     }
@@ -1966,12 +2277,6 @@ namespace TaskbarMusicWidget
                     {
                         // Portada estilizada de Apple TV oficial en alta resolución cuando DRM bloquea el thumbnail
                         _currentCover = ObtenerPortadaAppleTVDefault();
-                        AlbumArt.Source = _currentCover;
-                    }
-                    else if (isDazn)
-                    {
-                        // Portada estilizada de DAZN oficial en alta resolución cuando DRM bloquea el thumbnail
-                        _currentCover = ObtenerPortadaDaznDefault();
                         AlbumArt.Source = _currentCover;
                     }
                     else
