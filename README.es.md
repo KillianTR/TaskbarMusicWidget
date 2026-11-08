@@ -86,6 +86,7 @@ El ejecutable listo para usar se generará en:
 
 ### v0.9.7
 - **Marquee Bidireccional con Efecto Rebote (Ping-Pong Scroll):** Rediseño completo de la animación de desplazamiento para textos largos. El título y artista pausan al inicio para una lectura cómoda, se desplazan suavemente hasta mostrar el final del texto, pausan y rebotan en sentido contrario sin vacíos molestos. Sincronizado tanto en el widget de la barra de tareas como en la tarjeta flotante desplegada (*Flyout*).
+- **Captura Automática del Icono del Canal en Twitch:** Detección nativa de streams de Twitch (en app o navegadores), obteniendo y mostrando siempre el avatar oficial del canal en alta resolución como miniatura mediante consultas ultrarrápidas a la API GQL y sistema de doble nivel de caché (RAM + disco).
 - **Integración Oficial de DAZN:** Detección nativa de transmisiones y partidos de DAZN (tanto en aplicación como en navegadores), mostrando el partido/evento arriba, "DAZN" como artista abajo y el logo geométrico oficial de DAZN integrado directamente como recurso del ejecutable.
 - **Captura de Capítulos y Miniaturas en Netflix:** Análisis avanzado de metadatos para extraer simultáneamente el nombre de la serie y el título del capítulo/episodio (`Serie — Capítulo`) sin descartar información. Captura fotogramas de vídeo en tiempo real desde las sesiones SMTC de Windows con carátula de respaldo en alta resolución.
 - **Soporte Dedicado para Apple TV:** Detección de episodios y series en Apple TV con extracción de capítulos y logotipo característico.

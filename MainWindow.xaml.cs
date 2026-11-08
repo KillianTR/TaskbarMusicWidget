@@ -51,6 +51,8 @@ namespace TaskbarMusicWidget
 
         private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
         private static readonly ConcurrentDictionary<string, ImageSource> _channelAvatarCache = new(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly ConcurrentDictionary<string, ImageSource> _twitchAvatarCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly string _avatarCacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "TaskbarMusicWidget", "Avatars");
@@ -1492,6 +1494,308 @@ namespace TaskbarMusicWidget
             return t;
         }
 
+        private static ImageSource? _twitchDefaultCover;
+
+        private static ImageSource ObtenerPortadaTwitchDefault()
+        {
+            if (_twitchDefaultCover != null) return _twitchDefaultCover;
+
+            int width = 96;
+            int height = 96;
+            var visual = new DrawingVisual();
+            using (var dc = visual.RenderOpen())
+            {
+                var bgBrush = new SolidColorBrush(Color.FromRgb(0x91, 0x46, 0xFF));
+                dc.DrawRoundedRectangle(bgBrush, null, new Rect(0, 0, width, height), 8, 8);
+
+                var whiteBrush = Brushes.White;
+                var streamGeom = new StreamGeometry();
+                using (var ctx = streamGeom.Open())
+                {
+                    ctx.BeginFigure(new Point(24, 20), true, true);
+                    ctx.LineTo(new Point(72, 20), true, false);
+                    ctx.LineTo(new Point(72, 60), true, false);
+                    ctx.LineTo(new Point(60, 60), true, false);
+                    ctx.LineTo(new Point(50, 72), true, false);
+                    ctx.LineTo(new Point(50, 60), true, false);
+                    ctx.LineTo(new Point(24, 60), true, false);
+                }
+                streamGeom.Freeze();
+                dc.DrawGeometry(whiteBrush, null, streamGeom);
+
+                dc.DrawRectangle(bgBrush, null, new Rect(38, 32, 6, 16));
+                dc.DrawRectangle(bgBrush, null, new Rect(52, 32, 6, 16));
+            }
+
+            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(visual);
+            rtb.Freeze();
+            _twitchDefaultCover = rtb;
+            return _twitchDefaultCover;
+        }
+
+        private (string Titulo, string Canal) ExtraerCanalYTituloTwitch(GlobalSystemMediaTransportControlsSessionMediaProperties props)
+        {
+            string rawTitle = props.Title ?? "";
+            string rawArtist = props.Artist ?? "";
+            string rawSubtitle = props.Subtitle ?? "";
+            string rawAlbum = props.AlbumTitle ?? "";
+
+            string canal = "";
+
+            if (!string.IsNullOrWhiteSpace(rawArtist) &&
+                !rawArtist.Trim().Equals("Twitch", StringComparison.OrdinalIgnoreCase) &&
+                !rawArtist.Trim().Equals("Artista desconocido", StringComparison.OrdinalIgnoreCase))
+            {
+                canal = rawArtist.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(canal))
+            {
+                if (!string.IsNullOrWhiteSpace(rawSubtitle) && !rawSubtitle.Trim().Equals("Twitch", StringComparison.OrdinalIgnoreCase))
+                {
+                    canal = rawSubtitle.Trim();
+                }
+                else if (!string.IsNullOrWhiteSpace(rawAlbum) && !rawAlbum.Trim().Equals("Twitch", StringComparison.OrdinalIgnoreCase))
+                {
+                    canal = rawAlbum.Trim();
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(canal) && !string.IsNullOrWhiteSpace(rawTitle))
+            {
+                var m = Regex.Match(rawTitle, @"-\s*([a-zA-Z0-9_]{3,25})\s+(?:on|en)\s+Twitch", RegexOptions.IgnoreCase);
+                if (m.Success)
+                {
+                    canal = m.Groups[1].Value;
+                }
+                else
+                {
+                    var m2 = Regex.Match(rawTitle, @"^([a-zA-Z0-9_]{3,25})\s+playing\s+", RegexOptions.IgnoreCase);
+                    if (m2.Success)
+                    {
+                        canal = m2.Groups[1].Value;
+                    }
+                    else
+                    {
+                        var m3 = Regex.Match(rawTitle, @"^([a-zA-Z0-9_]{3,25})\s*-\s*(?:.*-\s*)?Twitch", RegexOptions.IgnoreCase);
+                        if (m3.Success)
+                        {
+                            canal = m3.Groups[1].Value;
+                        }
+                        else
+                        {
+                            var m4 = Regex.Match(rawTitle, @"Twitch\s*-\s*([a-zA-Z0-9_]{3,25})", RegexOptions.IgnoreCase);
+                            if (m4.Success)
+                            {
+                                canal = m4.Groups[1].Value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(canal))
+            {
+                string tabTitle = ObtenerTituloPestañaNavegador(_currentSession?.SourceAppUserModelId, "Twitch");
+                if (!string.IsNullOrWhiteSpace(tabTitle))
+                {
+                    var m = Regex.Match(tabTitle, @"-\s*([a-zA-Z0-9_]{3,25})\s+(?:on|en)\s+Twitch", RegexOptions.IgnoreCase);
+                    if (m.Success)
+                    {
+                        canal = m.Groups[1].Value;
+                    }
+                    else
+                    {
+                        var m2 = Regex.Match(tabTitle, @"^([a-zA-Z0-9_]{3,25})\s*-\s*(?:.*-\s*)?Twitch", RegexOptions.IgnoreCase);
+                        if (m2.Success)
+                        {
+                            canal = m2.Groups[1].Value;
+                        }
+                    }
+                }
+            }
+
+            string titulo = rawTitle;
+            if (string.IsNullOrWhiteSpace(titulo) || titulo.Trim().Equals("Twitch", StringComparison.OrdinalIgnoreCase))
+            {
+                string tabTitle = ObtenerTituloPestañaNavegador(_currentSession?.SourceAppUserModelId, "Twitch");
+                if (!string.IsNullOrWhiteSpace(tabTitle))
+                {
+                    titulo = tabTitle;
+                }
+            }
+
+            titulo = Regex.Replace(titulo, @"\s*-\s*[a-zA-Z0-9_]{3,25}\s+(?:on|en)\s+Twitch$", "", RegexOptions.IgnoreCase);
+            titulo = Regex.Replace(titulo, @"\s*-\s*Twitch$", "", RegexOptions.IgnoreCase);
+            titulo = Regex.Replace(titulo, @"^Twitch\s*-\s*", "", RegexOptions.IgnoreCase);
+            titulo = titulo.Trim();
+
+            if (string.IsNullOrWhiteSpace(titulo) || (!string.IsNullOrWhiteSpace(canal) && titulo.Equals(canal, StringComparison.OrdinalIgnoreCase)))
+            {
+                titulo = !string.IsNullOrWhiteSpace(canal) ? canal : "Twitch Stream";
+            }
+
+            if (string.IsNullOrWhiteSpace(canal))
+            {
+                canal = "Twitch";
+            }
+
+            return (titulo, canal);
+        }
+
+        private static bool TryObtenerAvatarTwitchEnCache(string channelName, out ImageSource? avatar)
+        {
+            avatar = null;
+            if (string.IsNullOrWhiteSpace(channelName)) return false;
+            channelName = channelName.Trim();
+
+            if (_twitchAvatarCache.TryGetValue(channelName, out avatar) && avatar != null)
+            {
+                return true;
+            }
+
+            try
+            {
+                string safeName = Regex.Replace(channelName, @"[^\w\-\.]", "_") + ".png";
+                string cachePath = Path.Combine(_avatarCacheDir, "twitch_" + safeName);
+                if (File.Exists(cachePath))
+                {
+                    byte[] bytes = File.ReadAllBytes(cachePath);
+                    if (bytes != null && bytes.Length > 0)
+                    {
+                        avatar = CrearBitmapDesdeBytes(bytes);
+                        if (avatar != null)
+                        {
+                            _twitchAvatarCache[channelName] = avatar;
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return false;
+        }
+
+        private static void GuardarAvatarTwitchEnCache(string channelName, ImageSource bmp, byte[] imgBytes)
+        {
+            try
+            {
+                _twitchAvatarCache[channelName] = bmp;
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        if (!Directory.Exists(_avatarCacheDir))
+                        {
+                            Directory.CreateDirectory(_avatarCacheDir);
+                        }
+                        string safeName = Regex.Replace(channelName, @"[^\w\-\.]", "_") + ".png";
+                        string cachePath = Path.Combine(_avatarCacheDir, "twitch_" + safeName);
+                        await File.WriteAllBytesAsync(cachePath, imgBytes);
+                    }
+                    catch { }
+                });
+            }
+            catch { }
+        }
+
+        private static async Task<ImageSource?> ObtenerAvatarTwitchAsync(string channelName)
+        {
+            if (string.IsNullOrWhiteSpace(channelName)) return null;
+            channelName = channelName.Trim();
+
+            if (TryObtenerAvatarTwitchEnCache(channelName, out var cached) && cached != null)
+            {
+                return cached;
+            }
+
+            // 1. Consulta rápida a Twitch GQL
+            try
+            {
+                string gqlUrl = "https://gql.twitch.tv/gql";
+                string jsonBody = "{\"query\":\"query { user(login: \\\"" + channelName.ToLowerInvariant() + "\\\") { profileImageURL(width: 300) } }\"}";
+                using var request = new HttpRequestMessage(HttpMethod.Post, gqlUrl);
+                request.Headers.Add("Client-Id", "kimne78kx3ncx6brgo4mv6wki5h1ko");
+                request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.SendAsync(request);
+                if (response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync();
+                    var match = Regex.Match(json, @"""profileImageURL""\s*:\s*""([^""]+)""");
+                    if (match.Success)
+                    {
+                        string avatarUrl = match.Groups[1].Value.Replace("\u002F", "/");
+                        var imgBytes = await _httpClient.GetByteArrayAsync(avatarUrl);
+                        if (imgBytes != null && imgBytes.Length > 0)
+                        {
+                            var bmp = CrearBitmapDesdeBytes(imgBytes);
+                            if (bmp != null)
+                            {
+                                GuardarAvatarTwitchEnCache(channelName, bmp, imgBytes);
+                                return bmp;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Fallback por scraping directo del canal
+            try
+            {
+                string pageUrl = $"https://www.twitch.tv/{channelName.ToLowerInvariant()}";
+                using var req = new HttpRequestMessage(HttpMethod.Get, pageUrl);
+                var pageResp = await _httpClient.SendAsync(req);
+                if (pageResp.IsSuccessStatusCode)
+                {
+                    string html = await pageResp.Content.ReadAsStringAsync();
+                    var match = Regex.Match(html, @"https://static-cdn\.jtvnw\.net/jtv_user_pictures/[^\s""'<>]+-profile_image-[^\s""'<>]+");
+                    if (match.Success)
+                    {
+                        string avatarUrl = match.Value;
+                        var imgBytes = await _httpClient.GetByteArrayAsync(avatarUrl);
+                        if (imgBytes != null && imgBytes.Length > 0)
+                        {
+                            var bmp = CrearBitmapDesdeBytes(imgBytes);
+                            if (bmp != null)
+                            {
+                                GuardarAvatarTwitchEnCache(channelName, bmp, imgBytes);
+                                return bmp;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private async Task CargarAvatarTwitchAsync(string channelName, string expectedTitle)
+        {
+            try
+            {
+                var logo = await ObtenerAvatarTwitchAsync(channelName);
+                if (logo != null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (_currentArtist == channelName && _currentTitle == expectedTitle)
+                        {
+                            _currentCover = logo;
+                            AlbumArt.Source = logo;
+                            _flyoutWindow?.UpdateTrackInfo(_currentCover, _currentTitle, _currentArtist, _isPlaying);
+                        }
+                    });
+                }
+            }
+            catch { }
+        }
+
         private static string ObtenerNombrePlataformaReproductora(string? appModelId)
         {
             if (string.IsNullOrEmpty(appModelId)) return "";
@@ -2198,6 +2502,13 @@ namespace TaskbarMusicWidget
                         (props.AlbumTitle?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
                         (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "DAZN")));
 
+                    bool isTwitch = !hasYouTubeSignal && !isNetflix && !isAppleTV && !isDazn && (
+                        (_currentSession.SourceAppUserModelId?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Title?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Artist?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.AlbumTitle?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "Twitch")));
+
                     if (isNetflix)
                     {
                         string serieYCapitulo = ExtraerTituloSerieNetflix(props);
@@ -2215,6 +2526,12 @@ namespace TaskbarMusicWidget
                         string evento = ExtraerTituloEventoDazn(props);
                         _currentTitle = evento;
                         _currentArtist = "DAZN";
+                    }
+                    else if (isTwitch)
+                    {
+                        var (titulo, canal) = ExtraerCanalYTituloTwitch(props);
+                        _currentTitle = titulo;
+                        _currentArtist = canal;
                     }
                     else
                     {
@@ -2248,7 +2565,7 @@ namespace TaskbarMusicWidget
                         catch { }
                     }
 
-                    bool isStreamingService = isNetflix || isAppleTV || isDazn;
+                    bool isStreamingService = isNetflix || isAppleTV || isDazn || isTwitch;
                     bool isYouTube = !isStreamingService && EsSesionYouTube(_currentSession.SourceAppUserModelId, _currentTitle, _currentArtist, props.AlbumTitle);
                     bool isShort = isYouTube && EsYouTubeShort(_currentTitle, bmp?.PixelWidth ?? 0, bmp?.PixelHeight ?? 0, isBrowser);
 
@@ -2301,6 +2618,31 @@ namespace TaskbarMusicWidget
                             _currentCover = ytBmp;
                             AlbumArt.Source = ytBmp;
                             _ = CargarThumbnailYouTubeAsync(titleKey, _currentArtist);
+                        }
+                    }
+                    else if (isTwitch)
+                    {
+                        // Para Twitch, obtener siempre el icono/avatar oficial del canal como carátula
+                        string canalTwitch = _currentArtist;
+                        if (!string.IsNullOrWhiteSpace(canalTwitch) && !canalTwitch.Equals("Twitch", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (TryObtenerAvatarTwitchEnCache(canalTwitch, out var avatarCached) && avatarCached != null)
+                            {
+                                _currentCover = avatarCached;
+                                AlbumArt.Source = avatarCached;
+                            }
+                            else
+                            {
+                                ImageSource? coverTemp = bmp ?? ObtenerPortadaTwitchDefault();
+                                _currentCover = coverTemp;
+                                AlbumArt.Source = coverTemp;
+                                _ = CargarAvatarTwitchAsync(canalTwitch, _currentTitle);
+                            }
+                        }
+                        else
+                        {
+                            _currentCover = bmp ?? ObtenerPortadaTwitchDefault();
+                            AlbumArt.Source = _currentCover;
                         }
                     }
                     else if (isDazn)

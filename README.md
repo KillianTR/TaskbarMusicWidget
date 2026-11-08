@@ -86,6 +86,7 @@ The ready-to-use executable will be generated at:
 
 ### v0.9.7
 - **Bidirectional Bouncing Marquee (Ping-Pong Scroll):** Overhauled overflow text scrolling with a smooth bidirectional bounce effect. Titles and artists now pause at the start for readability, scroll smoothly left-to-right to reveal the full ending, pause, and bounce back seamlessly without blank delays. Synchronized across both the compact taskbar widget and the expanded flyout card.
+- **Twitch Channel Avatar Integration:** Native recognition of Twitch live streams (desktop app or browser), automatically fetching and displaying the streamer's official high-resolution channel icon/avatar via ultra-fast GQL queries and dual-tier caching (RAM + disk), eliminating missing, letterboxed or low-quality preview frames.
 - **Official DAZN Integration:** Added native recognition for DAZN broadcasts (via desktop app or browser), displaying the match/event name prominently on top, "DAZN" as the artist below, and bundling the official geometric DAZN logo directly as an embedded application resource.
 - **Netflix Chapter Titles & Live Video Thumbnails:** Upgraded metadata parser to capture both the series name and the specific chapter/episode title (`{Series} — {Chapter}`). Extracts live thumbnail preview frames directly from Windows SMTC sessions with high-resolution vector fallback.
 - **Apple TV Metadata & Streaming Refinements:** Synchronized Apple TV handling with episode title parsing and dedicated visual branding.
