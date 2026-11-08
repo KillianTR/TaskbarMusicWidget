@@ -83,19 +83,9 @@ namespace TaskbarMusicWidget
         [DllImport("user32.dll", SetLastError = true)]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
-        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
-        private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
-
         [DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        private static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong)
-        {
-            if (IntPtr.Size == 8)
-                return SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
-            else
-                return new IntPtr(SetWindowLong(hWnd, nIndex, dwNewLong.ToInt32()));
-        }
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -108,7 +98,6 @@ namespace TaskbarMusicWidget
         private const uint SWP_SHOWWINDOW = 0x0040;
 
         private const int GWL_EXSTYLE = -20;
-        private const int GWL_HWNDPARENT = -8;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
         private const int WS_EX_NOACTIVATE = 0x08000000;
         private const int WS_EX_TOPMOST = 0x00000008;
@@ -123,16 +112,11 @@ namespace TaskbarMusicWidget
 
         private const int SW_SHOWNORMAL = 1;
         private const int SW_SHOWMAXIMIZED = 3;
-        private const int SW_SHOW = 5;
-        private const int SW_RESTORE = 9;
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool IsIconic(IntPtr hWnd);
 
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsZoomed(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -1784,7 +1768,7 @@ namespace TaskbarMusicWidget
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        if (_currentArtist == channelName && _currentTitle == expectedTitle)
+                        if (string.Equals(_currentArtist, channelName, StringComparison.OrdinalIgnoreCase))
                         {
                             _currentCover = logo;
                             AlbumArt.Source = logo;
@@ -1879,7 +1863,7 @@ namespace TaskbarMusicWidget
                         try
                         {
                             var proc = Process.GetProcessById((int)pid);
-                            if (proc != null && (EsNavegador(proc.ProcessName) || appModelId.Contains(proc.ProcessName, StringComparison.OrdinalIgnoreCase)))
+                            if (proc != null && (EsNavegador(proc.ProcessName) || appModelId?.Contains(proc.ProcessName, StringComparison.OrdinalIgnoreCase) == true))
                             {
                                 found = true;
                                 return false;
@@ -1945,7 +1929,7 @@ namespace TaskbarMusicWidget
                         try
                         {
                             var proc = Process.GetProcessById((int)pid);
-                            if (proc != null && (EsNavegador(proc.ProcessName) || appModelId.Contains(proc.ProcessName, StringComparison.OrdinalIgnoreCase)))
+                            if (proc != null && (EsNavegador(proc.ProcessName) || appModelId?.Contains(proc.ProcessName, StringComparison.OrdinalIgnoreCase) == true))
                             {
                                 foundTitle = wTitle;
                                 return false;
@@ -2016,11 +2000,51 @@ namespace TaskbarMusicWidget
             return false;
         }
 
+        private static bool EsPatronStreamerTwitch(string? title, string? artist)
+        {
+            if (string.IsNullOrWhiteSpace(artist)) return false;
+            string a = artist.Trim();
+            if (a.Equals("Netflix", StringComparison.OrdinalIgnoreCase) ||
+                a.Equals("Apple TV", StringComparison.OrdinalIgnoreCase) ||
+                a.Equals("DAZN", StringComparison.OrdinalIgnoreCase) ||
+                a.Equals("YouTube", StringComparison.OrdinalIgnoreCase) ||
+                a.Equals("Spotify", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!Regex.IsMatch(a, @"^[a-zA-Z0-9_]{3,25}$")) return false;
+
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                if (Regex.IsMatch(title, @"!\w{2,}") ||
+                    title.Contains("drops", StringComparison.OrdinalIgnoreCase) ||
+                    title.Contains("Twitch", StringComparison.OrdinalIgnoreCase) ||
+                    title.Contains("stream", StringComparison.OrdinalIgnoreCase) ||
+                    title.Contains("directo", StringComparison.OrdinalIgnoreCase) ||
+                    title.Contains("subscriptores", StringComparison.OrdinalIgnoreCase) ||
+                    title.Contains("suscriptores", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static bool EsSesionYouTube(string? appModelId, string? title, string? artist, string? albumTitle)
         {
             if (string.IsNullOrWhiteSpace(title)) return false;
 
-            if (title.Contains("YouTube", StringComparison.OrdinalIgnoreCase) ||
+            // Si tiene comandos o patrones claros de Twitch, o el artista es un streamer de Twitch en caché, no es YouTube
+            if (Regex.IsMatch(title, @"!\w{2,}") || (!string.IsNullOrWhiteSpace(artist) && TryObtenerAvatarTwitchEnCache(artist, out _)))
+            {
+                return false;
+            }
+
+            if (Regex.IsMatch(title, @"\s*-\s*YouTube$", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(title, @"\s*\|\s*YouTube$", RegexOptions.IgnoreCase) ||
+                artist?.Equals("YouTube", StringComparison.OrdinalIgnoreCase) == true ||
                 artist?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true ||
                 albumTitle?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true)
             {
@@ -2044,7 +2068,7 @@ namespace TaskbarMusicWidget
                         var sb = new StringBuilder(256);
                         GetWindowText(hWnd, sb, sb.Capacity);
                         string wTitle = sb.ToString();
-                        if (wTitle.Contains("YouTube", StringComparison.OrdinalIgnoreCase))
+                        if (wTitle.Contains(" - YouTube", StringComparison.OrdinalIgnoreCase) || wTitle.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase))
                         {
                             GetWindowThreadProcessId(hWnd, out uint pid);
                             try
@@ -2318,7 +2342,7 @@ namespace TaskbarMusicWidget
                     Dispatcher.Invoke(() =>
                     {
                         // Asegurarse de que el usuario sigue reproduciendo el mismo canal y título
-                        if (_currentArtist == channelName && _currentTitle == expectedTitle)
+                        if (string.Equals(_currentArtist, channelName, StringComparison.OrdinalIgnoreCase))
                         {
                             _currentCover = logo;
                             AlbumArt.Source = logo;
@@ -2473,12 +2497,15 @@ namespace TaskbarMusicWidget
 
                 if (props != null)
                 {
-                    bool hasYouTubeSignal = (props.Title?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
-                                            (props.Artist?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
-                                            (props.AlbumTitle?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
-                                            (_currentSession.SourceAppUserModelId?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true);
-
                     bool isBrowser = EsNavegador(_currentSession.SourceAppUserModelId);
+
+                    bool hasYouTubeSignal =
+                        (_currentSession.SourceAppUserModelId?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.AlbumTitle?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Artist?.Equals("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (Regex.IsMatch(props.Title ?? "", @"\s*-\s*YouTube$", RegexOptions.IgnoreCase)) ||
+                        (Regex.IsMatch(props.Title ?? "", @"\s*\|\s*YouTube$", RegexOptions.IgnoreCase)) ||
+                        (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, " - YouTube"));
 
                     bool isNetflix = !hasYouTubeSignal && (
                         (_currentSession.SourceAppUserModelId?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
@@ -2502,12 +2529,16 @@ namespace TaskbarMusicWidget
                         (props.AlbumTitle?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
                         (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "DAZN")));
 
-                    bool isTwitch = !hasYouTubeSignal && !isNetflix && !isAppleTV && !isDazn && (
+                    bool isTwitch = !isNetflix && !isAppleTV && !isDazn && (
                         (_currentSession.SourceAppUserModelId?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
-                        (props.Title?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (Regex.IsMatch(props.Title ?? "", @"\s*-\s*Twitch$", RegexOptions.IgnoreCase)) ||
+                        (Regex.IsMatch(props.Title ?? "", @"-\s*[a-zA-Z0-9_]{3,25}\s+(?:on|en)\s+Twitch", RegexOptions.IgnoreCase)) ||
+                        (props.Title?.Contains("twitch.tv", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.Artist?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
                         (props.AlbumTitle?.Contains("Twitch", StringComparison.OrdinalIgnoreCase) == true) ||
-                        (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "Twitch")));
+                        (isBrowser && EsVentanaDeNavegadorConTitulo(_currentSession.SourceAppUserModelId, "Twitch")) ||
+                        (isBrowser && !string.IsNullOrWhiteSpace(props.Artist) && TryObtenerAvatarTwitchEnCache(props.Artist, out _)) ||
+                        (isBrowser && !hasYouTubeSignal && !string.IsNullOrWhiteSpace(props.Artist) && EsPatronStreamerTwitch(props.Title, props.Artist)));
 
                     if (isNetflix)
                     {
@@ -2620,7 +2651,7 @@ namespace TaskbarMusicWidget
                             _ = CargarThumbnailYouTubeAsync(titleKey, _currentArtist);
                         }
                     }
-                    else if (isTwitch)
+                    else if (isTwitch || (!string.IsNullOrWhiteSpace(_currentArtist) && TryObtenerAvatarTwitchEnCache(_currentArtist, out _)))
                     {
                         // Para Twitch, obtener siempre el icono/avatar oficial del canal como carátula
                         string canalTwitch = _currentArtist;
@@ -2656,6 +2687,14 @@ namespace TaskbarMusicWidget
                         // Usar miniatura para Netflix, Apple TV, reproductores estándar, etc.
                         _currentCover = bmp;
                         AlbumArt.Source = bmp;
+
+                        // Si es navegador y el artista parece un canal de Twitch no detectado previamente, intentar resolver avatar
+                        if (isBrowser && !isYouTube && !isNetflix && !isAppleTV && !isDazn &&
+                            !string.IsNullOrWhiteSpace(_currentArtist) &&
+                            Regex.IsMatch(_currentArtist, @"^[a-zA-Z0-9_]{3,25}$"))
+                        {
+                            _ = CargarAvatarTwitchAsync(_currentArtist, _currentTitle);
+                        }
                     }
                     else if (isNetflix)
                     {

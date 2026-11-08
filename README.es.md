@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Versión](https://img.shields.io/badge/versión-v0.9.7-1ED760?style=flat-square)
+![Versión](https://img.shields.io/badge/versión-v0.9.8-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -83,6 +83,11 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.9.8
+- **Resolución Robusta de Streams y Avatares de Canales en Twitch:** Corregida la falsa detección como vídeo de YouTube provocada por comandos de chat de streamers (como `!youtube`, `!yt`, `!srp`, `!sorteo`, etc.) presentes en los títulos de retransmisión. Canales como `Stradi` ahora detectan y muestran de inmediato su avatar oficial de perfil en alta resolución en el widget y flyout, incluso si la pestaña del navegador está en segundo plano.
+- **Optimización de Código y Limpieza de Código Muerto:** Eliminación de declaraciones nativas Win32 P/Invoke en desuso (`SetWindowLongPtr`, `SetWindowLongPtr64`, `GWL_HWNDPARENT`, `SW_SHOW`, `SW_RESTORE`, `IsZoomed`), resolución de advertencias de nulabilidad (CS8602) y refinamiento del procesador SMTC con 0 advertencias y máxima eficiencia.
+- **Blindaje de Privacidad y Seguridad:** Configuración estricta de credenciales anónimas de autor git (`KillianTR <KillianTR@users.noreply.github.com>`) para garantizar la total privacidad de los datos personales en commits y repositorios públicos.
 
 ### v0.9.7
 - **Marquee Bidireccional con Efecto Rebote (Ping-Pong Scroll):** Rediseño completo de la animación de desplazamiento para textos largos. El título y artista pausan al inicio para una lectura cómoda, se desplazan suavemente hasta mostrar el final del texto, pausan y rebotan en sentido contrario sin vacíos molestos. Sincronizado tanto en el widget de la barra de tareas como en la tarjeta flotante desplegada (*Flyout*).

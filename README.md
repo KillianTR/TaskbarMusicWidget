@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.9.7-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.9.8-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -83,6 +83,11 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.9.8
+- **Robust Twitch Stream & Channel Avatar Resolution:** Fixed false-positive YouTube detection caused by streamer chat commands (such as `!youtube`, `!yt`, `!srp`, `!sorteo`, etc.) in stream titles. Twitch streams from channels like `Stradi` now seamlessly detect and display their official high-resolution channel profile picture across the taskbar and flyout, even when playing in background tabs.
+- **Codebase Optimization & Dead Code Removal:** Cleaned up unused Win32 P/Invoke declarations (`SetWindowLongPtr`, `SetWindowLongPtr64`, `GWL_HWNDPARENT`, `SW_SHOW`, `SW_RESTORE`, `IsZoomed`), resolved nullability warnings (CS8602), and streamlined SMTC parsing for zero warnings and peak execution efficiency.
+- **Privacy & Security Hardening:** Configured anonymous git author credentials (`KillianTR <KillianTR@users.noreply.github.com>`) to guarantee complete user privacy protection across all public commits and repository telemetry.
 
 ### v0.9.7
 - **Bidirectional Bouncing Marquee (Ping-Pong Scroll):** Overhauled overflow text scrolling with a smooth bidirectional bounce effect. Titles and artists now pause at the start for readability, scroll smoothly left-to-right to reveal the full ending, pause, and bounce back seamlessly without blank delays. Synchronized across both the compact taskbar widget and the expanded flyout card.
