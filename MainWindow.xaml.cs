@@ -1131,6 +1131,209 @@ namespace TaskbarMusicWidget
             return I18n.PlayingFallback;
         }
 
+        private static ImageSource? _appleTvDefaultCover;
+
+        private static ImageSource ObtenerPortadaAppleTVDefault()
+        {
+            if (_appleTvDefaultCover != null) return _appleTvDefaultCover;
+
+            int width = 96;
+            int height = 96;
+            var visual = new DrawingVisual();
+            using (var dc = visual.RenderOpen())
+            {
+                var bgBrush = new SolidColorBrush(Color.FromRgb(0x10, 0x10, 0x10));
+                dc.DrawRoundedRectangle(bgBrush, null, new Rect(0, 0, width, height), 8, 8);
+
+                var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF)), 1.0);
+                dc.DrawRoundedRectangle(null, borderPen, new Rect(0.5, 0.5, width - 1, height - 1), 8, 8);
+
+                string applePathData = "M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.05-7.62-7.85-11.77-14.41-6.41-10.12-11.24-21.65-14.48-34.6-3.24-12.95-4.86-25.04-4.86-36.27 0-14.9 3.63-27.18 10.9-36.85 7.27-9.66 16.51-14.59 27.72-14.77 5.01 0 10.46 1.34 16.36 4.02 5.9 2.68 9.94 4.08 12.12 4.2 2.06 0 6.38-1.5 12.96-4.5 6.58-3 12.18-4.39 16.79-4.18 12.73.66 22.81 5.37 30.25 14.13-11.19 6.78-16.67 16.29-16.44 28.53.24 9.68 3.86 17.65 10.86 23.91 7 6.26 15.28 9.87 24.84 10.83-2.07 6.42-4.59 13.25-7.57 20.49zM119.22 31.84c0-7.39 2.65-14.18 7.95-20.37 5.3-6.19 11.75-9.98 19.35-11.37.22 1.09.33 2.07.33 2.94 0 7.39-2.73 14.28-8.19 20.67-5.46 6.39-12.02 10.02-19.68 10.89-.22-.98-.33-1.89-.33-2.76z";
+                var rawAppleGeom = Geometry.Parse(applePathData);
+
+                var group = new TransformGroup();
+                group.Children.Add(new ScaleTransform(0.19, 0.19));
+                group.Children.Add(new TranslateTransform(14, 32));
+
+                dc.PushTransform(group);
+                dc.DrawGeometry(Brushes.White, null, rawAppleGeom);
+                dc.Pop();
+
+                var typeface = new Typeface(new FontFamily("Segoe UI, SF Pro Display, Arial"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+                var ft = new FormattedText("tv", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 32, Brushes.White, 1.0);
+                dc.DrawText(ft, new Point(49, 29));
+            }
+
+            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(visual);
+            rtb.Freeze();
+            _appleTvDefaultCover = rtb;
+            return _appleTvDefaultCover;
+        }
+
+        private string ExtraerTituloSerieAppleTV(GlobalSystemMediaTransportControlsSessionMediaProperties props)
+        {
+            if (!string.IsNullOrWhiteSpace(props.Subtitle) && 
+                !props.Subtitle.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) &&
+                !props.Subtitle.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) &&
+                !props.Subtitle.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return props.Subtitle.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && 
+                !props.AlbumTitle.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) &&
+                !props.AlbumTitle.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) &&
+                !props.AlbumTitle.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return props.AlbumTitle.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && 
+                !props.AlbumArtist.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) &&
+                !props.AlbumArtist.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) &&
+                !props.AlbumArtist.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return props.AlbumArtist.Trim();
+            }
+
+            string t = props.Title ?? "";
+            string[] suffixes = { " | Apple TV+", " - Apple TV+", " | Apple TV", " - Apple TV" };
+            foreach (var suffix in suffixes)
+            {
+                if (t.Contains(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return t.Substring(0, t.IndexOf(suffix, StringComparison.OrdinalIgnoreCase)).Trim();
+                }
+            }
+
+            string[] prefixes = { "Apple TV+ - ", "Apple TV - ", "Apple TV+: ", "Apple TV: " };
+            foreach (var prefix in prefixes)
+            {
+                if (t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return t.Substring(prefix.Length).Trim();
+                }
+            }
+
+            if (!t.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) && 
+                !t.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) && 
+                !t.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase) && 
+                !string.IsNullOrWhiteSpace(t))
+            {
+                return t.Trim();
+            }
+
+            string a = props.Artist ?? "";
+            if (!a.Trim().Equals("Apple TV", StringComparison.OrdinalIgnoreCase) && 
+                !a.Trim().Equals("Apple TV+", StringComparison.OrdinalIgnoreCase) && 
+                !a.Trim().Equals("tv.apple.com", StringComparison.OrdinalIgnoreCase) && 
+                !string.IsNullOrWhiteSpace(a))
+            {
+                return a.Trim();
+            }
+
+            return I18n.PlayingFallback;
+        }
+
+        private static ImageSource? _daznDefaultCover;
+
+        private static ImageSource ObtenerPortadaDaznDefault()
+        {
+            if (_daznDefaultCover != null) return _daznDefaultCover;
+
+            int width = 96;
+            int height = 96;
+            var visual = new DrawingVisual();
+            using (var dc = visual.RenderOpen())
+            {
+                var bgBrush = new SolidColorBrush(Color.FromRgb(0x0C, 0x0E, 0x12));
+                dc.DrawRoundedRectangle(bgBrush, null, new Rect(0, 0, width, height), 8, 8);
+
+                var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(0x25, 0xFF, 0xFF, 0xFF)), 1.0);
+                dc.DrawRoundedRectangle(null, borderPen, new Rect(0.5, 0.5, width - 1, height - 1), 8, 8);
+
+                var typeface = new Typeface(new FontFamily("Arial Black, Segoe UI, Impact"), FontStyles.Normal, FontWeights.Black, FontStretches.Normal);
+                var whiteBrush = new SolidColorBrush(Color.FromRgb(0xF6, 0xF6, 0xF6));
+
+                var ftDA = new FormattedText("DA", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 34, whiteBrush, 1.0);
+                ftDA.TextAlignment = TextAlignment.Center;
+                dc.DrawText(ftDA, new Point(width / 2.0, 12));
+
+                var ftZN = new FormattedText("ZN", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 34, whiteBrush, 1.0);
+                ftZN.TextAlignment = TextAlignment.Center;
+                dc.DrawText(ftZN, new Point(width / 2.0, 46));
+            }
+
+            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(visual);
+            rtb.Freeze();
+            _daznDefaultCover = rtb;
+            return _daznDefaultCover;
+        }
+
+        private string ExtraerTituloEventoDazn(GlobalSystemMediaTransportControlsSessionMediaProperties props)
+        {
+            if (!string.IsNullOrWhiteSpace(props.Subtitle) && 
+                !props.Subtitle.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) &&
+                !props.Subtitle.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return props.Subtitle.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(props.AlbumTitle) && 
+                !props.AlbumTitle.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) &&
+                !props.AlbumTitle.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return props.AlbumTitle.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(props.AlbumArtist) && 
+                !props.AlbumArtist.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) &&
+                !props.AlbumArtist.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return props.AlbumArtist.Trim();
+            }
+
+            string t = props.Title ?? "";
+            string[] suffixes = { " | DAZN", " - DAZN", ": DAZN" };
+            foreach (var suffix in suffixes)
+            {
+                if (t.Contains(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return t.Substring(0, t.IndexOf(suffix, StringComparison.OrdinalIgnoreCase)).Trim();
+                }
+            }
+
+            string[] prefixes = { "DAZN - ", "DAZN: " };
+            foreach (var prefix in prefixes)
+            {
+                if (t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return t.Substring(prefix.Length).Trim();
+                }
+            }
+
+            if (!t.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) && 
+                !t.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase) && 
+                !t.Contains("Deportes en Directo", StringComparison.OrdinalIgnoreCase) &&
+                !t.Contains("Live & On Demand", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(t))
+            {
+                return t.Trim();
+            }
+
+            string a = props.Artist ?? "";
+            if (!a.Trim().Equals("DAZN", StringComparison.OrdinalIgnoreCase) && 
+                !a.Trim().Equals("dazn.com", StringComparison.OrdinalIgnoreCase) && 
+                !string.IsNullOrWhiteSpace(a))
+            {
+                return a.Trim();
+            }
+
+            return I18n.PlayingFallback;
+        }
+
         #region Detección y Carátulas para YouTube y YouTube Shorts
         private static bool EsNavegador(string? appModelId)
         {
@@ -1626,15 +1829,47 @@ namespace TaskbarMusicWidget
 
                 if (props != null)
                 {
-                    bool isNetflix = (_currentSession.SourceAppUserModelId?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
-                                     (props.Title?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
-                                     (props.Artist?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true);
+                    bool hasYouTubeSignal = (props.Title?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
+                                            (props.Artist?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
+                                            (props.AlbumTitle?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true) ||
+                                            (_currentSession.SourceAppUserModelId?.Contains("YouTube", StringComparison.OrdinalIgnoreCase) == true);
+
+                    bool isNetflix = !hasYouTubeSignal && (
+                        (_currentSession.SourceAppUserModelId?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Title?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Artist?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.AlbumTitle?.Contains("Netflix", StringComparison.OrdinalIgnoreCase) == true));
+
+                    bool isAppleTV = !hasYouTubeSignal && (
+                        (_currentSession.SourceAppUserModelId?.Contains("AppleTV", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (_currentSession.SourceAppUserModelId?.Contains("Apple.TV", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Title?.Contains("Apple TV", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Artist?.Contains("Apple TV", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.AlbumTitle?.Contains("Apple TV", StringComparison.OrdinalIgnoreCase) == true));
+
+                    bool isDazn = !hasYouTubeSignal && (
+                        (_currentSession.SourceAppUserModelId?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Title?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.Artist?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true) ||
+                        (props.AlbumTitle?.Contains("DAZN", StringComparison.OrdinalIgnoreCase) == true));
 
                     if (isNetflix)
                     {
                         string serie = ExtraerTituloSerieNetflix(props);
                         _currentTitle = "Netflix";
                         _currentArtist = serie;
+                    }
+                    else if (isAppleTV)
+                    {
+                        string serie = ExtraerTituloSerieAppleTV(props);
+                        _currentTitle = "Apple TV";
+                        _currentArtist = serie;
+                    }
+                    else if (isDazn)
+                    {
+                        string evento = ExtraerTituloEventoDazn(props);
+                        _currentTitle = "DAZN";
+                        _currentArtist = evento;
                     }
                     else
                     {
@@ -1661,7 +1896,8 @@ namespace TaskbarMusicWidget
                     }
 
                     bool isBrowser = EsNavegador(_currentSession.SourceAppUserModelId);
-                    bool isYouTube = !isNetflix && EsSesionYouTube(_currentSession.SourceAppUserModelId, _currentTitle, _currentArtist, props.AlbumTitle);
+                    bool isStreamingService = isNetflix || isAppleTV || isDazn;
+                    bool isYouTube = !isStreamingService && EsSesionYouTube(_currentSession.SourceAppUserModelId, _currentTitle, _currentArtist, props.AlbumTitle);
                     bool isShort = isYouTube && EsYouTubeShort(_currentTitle, bmp?.PixelWidth ?? 0, bmp?.PixelHeight ?? 0, isBrowser);
 
                     if (isYouTube)
@@ -1724,6 +1960,18 @@ namespace TaskbarMusicWidget
                     {
                         // Portada estilizada de Netflix oficial en alta resolución cuando DRM bloquea el thumbnail
                         _currentCover = ObtenerPortadaNetflixDefault();
+                        AlbumArt.Source = _currentCover;
+                    }
+                    else if (isAppleTV)
+                    {
+                        // Portada estilizada de Apple TV oficial en alta resolución cuando DRM bloquea el thumbnail
+                        _currentCover = ObtenerPortadaAppleTVDefault();
+                        AlbumArt.Source = _currentCover;
+                    }
+                    else if (isDazn)
+                    {
+                        // Portada estilizada de DAZN oficial en alta resolución cuando DRM bloquea el thumbnail
+                        _currentCover = ObtenerPortadaDaznDefault();
                         AlbumArt.Source = _currentCover;
                     }
                     else
@@ -2108,6 +2356,14 @@ namespace TaskbarMusicWidget
                 {
                     processName = "Netflix";
                 }
+                else if (appModelId.Contains("AppleTV", StringComparison.OrdinalIgnoreCase) || appModelId.Contains("Apple.TV", StringComparison.OrdinalIgnoreCase))
+                {
+                    processName = "AppleTV";
+                }
+                else if (appModelId.Contains("DAZN", StringComparison.OrdinalIgnoreCase))
+                {
+                    processName = "DAZN";
+                }
                 else if (appModelId.Contains("Opera", StringComparison.OrdinalIgnoreCase))
                 {
                     processName = "opera";
@@ -2236,6 +2492,13 @@ namespace TaskbarMusicWidget
             return text.Replace("- YouTube", "", StringComparison.OrdinalIgnoreCase)
                        .Replace(" - Twitch", "", StringComparison.OrdinalIgnoreCase)
                        .Replace("| Netflix", "", StringComparison.OrdinalIgnoreCase)
+                       .Replace("- Netflix", "", StringComparison.OrdinalIgnoreCase)
+                       .Replace("| Apple TV+", "", StringComparison.OrdinalIgnoreCase)
+                       .Replace("- Apple TV+", "", StringComparison.OrdinalIgnoreCase)
+                       .Replace("| Apple TV", "", StringComparison.OrdinalIgnoreCase)
+                       .Replace("- Apple TV", "", StringComparison.OrdinalIgnoreCase)
+                       .Replace("| DAZN", "", StringComparison.OrdinalIgnoreCase)
+                       .Replace("- DAZN", "", StringComparison.OrdinalIgnoreCase)
                        .Trim();
         }
 

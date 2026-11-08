@@ -26,7 +26,7 @@ Un widget nativo, ligero y elegante para la barra de tareas de Windows que propo
 ## ✨ Características Principales
 
 - **Integración Fluida con la Barra de Tareas:** Se acopla de manera limpia al espacio de la bandeja del sistema sin marcos molestos ni fondos desentonados.
-- **Detección Universal de Medios (GSMTC):** Compatible automáticamente con Spotify, YouTube, Twitch, Netflix, Soundcloud, VLC, Chrome, Opera, Edge, Brave y cualquier reproductor compatible con Windows Media.
+- **Detección Universal de Medios (GSMTC):** Compatible automáticamente con Spotify, YouTube, Twitch, Netflix, Apple TV, DAZN, Soundcloud, VLC, Chrome, Opera, Edge, Brave y cualquier reproductor compatible con Windows Media.
 - **Emojis a Todo Color Nativos de Windows 11:** Renderizado vectorial en color real mediante `Segoe UI Emoji` con detección y registro dinámico de símbolos Unicode 16.0 / 17.0 (como `👀`, `🔥`, `🫪`), eliminando por completo cajas vacías (`[]`) y glifos planos en blanco y negro.
 - **Tarjeta Flotante Expandible (*Flyout*):** Al pasar el ratón sobre el widget, se despliega una tarjeta flotante interactiva con carátula en alta resolución, título, artista, barra de progreso con desplazamiento manual (*scrubbing*) y controles completos.
 - **Barra de Volumen Interactiva con Porcentaje Numérico:** Barra de volumen estilo Spotify situada justo debajo del tiempo de la pista, con botón de silenciar/activar sonido, barra deslizable interactiva con clic y arrastre, porcentaje exacto en tiempo real (ej. `45%`), y ajuste con la rueda del ratón sobre el widget.
@@ -107,7 +107,7 @@ El ejecutable listo para usar se generará en:
 ### v0.8.7
 - **Sustitución de Carátula en YouTube Shorts por el Logo del Canal (Hotfix / Mejora):** Detección inteligente de YouTube Shorts reproducidos en navegadores (mediante relación de aspecto vertical 9:16 `PixelHeight > PixelWidth` o etiquetas `#shorts`), sustituyendo la miniatura de vídeo cortada/dividida por el logo o avatar oficial del canal en alta resolución (256x256).
 - **Caché de Avatares en Doble Nivel (Memoria + Disco):** Sistema de almacenamiento en memoria RAM y persistente en disco (`%LocalAppData%\TaskbarMusicWidget\Avatars`), logrando que reproducciones sucesivas de Shorts del mismo canal muestren el logo al instante (0 ms) sin peticiones de red redundantes.
-- **Preservación Selectiva:** Mantiene intactas las miniaturas 16:9 de vídeos estándar de YouTube, las portadas cuadradas 1:1 de Spotify y los pósteres de Netflix.
+- **Preservación Selectiva:** Mantiene intactas las miniaturas 16:9 de vídeos estándar de YouTube, las portadas cuadradas 1:1 de Spotify y las portadas dedicadas de Netflix, Apple TV y DAZN.
 
 ### v0.8.6
 - **Viewport Desacoplado con Canvas (Hotfix Crítico):** Resolución definitiva del recorte interno del motor de maquetación de WPF (`GetLayoutClip`), el cual truncaba todos los caracteres y glifos que sobrepasaran los 116px (en barra) y 238px (en flyout) al estar alojados directamente en celdas fijas de tipo `Grid`.

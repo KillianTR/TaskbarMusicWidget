@@ -26,7 +26,7 @@ A native, lightweight, and elegant Windows taskbar widget that delivers real-tim
 ## ✨ Key Features
 
 - **Seamless Taskbar Integration:** Docks cleanly into the system tray area with zero distracting frames or mismatched backgrounds.
-- **Universal Media Detection (GSMTC):** Automatically supports Spotify, YouTube, Twitch, Netflix, SoundCloud, VLC, Chrome, Opera, Edge, Brave, and any Windows Media-compatible player.
+- **Universal Media Detection (GSMTC):** Automatically supports Spotify, YouTube, Twitch, Netflix, Apple TV, DAZN, SoundCloud, VLC, Chrome, Opera, Edge, Brave, and any Windows Media-compatible player.
 - **Native Windows 11 Full-Color Emojis:** Native OpenType COLR/CPAL vector emoji rendering using `Segoe UI Emoji` with on-the-fly dynamic registration for modern Unicode 16.0 / 17.0 symbols (such as `👀`, `🔥`, `🫪`), eliminating monochrome glyphs and broken tofu boxes (`[]`).
 - **Expandable Interactive Flyout Card:** Hovering over the widget displays an interactive floating card with high-resolution album art, track title, artist name, a full progress bar with manual scrubbing, and playback controls.
 - **Interactive Volume Bar & Percentage Display:** Spotify-styled volume slider placed directly below the track timeline, featuring an instant mute/unmute button, click-to-position & drag slider, live volume percentage (e.g., `45%`), plus mouse wheel control over the taskbar widget.
@@ -107,7 +107,7 @@ The ready-to-use executable will be generated at:
 ### v0.8.7
 - **YouTube Shorts Channel Logo Replacement (Hotfix / Feature):** Automatically detects when media playback originates from a vertical YouTube Short (via 9:16 aspect ratio detection `PixelHeight > PixelWidth` or `#shorts` title tags) and replaces the split/cropped video thumbnail with the official high-resolution channel logo/avatar.
 - **Dual-Tier Avatar Caching (RAM + Disk):** Implemented an instant memory cache (`ConcurrentDictionary`) coupled with persistent disk storage (`%LocalAppData%\TaskbarMusicWidget\Avatars`), enabling subsequent Shorts from the same creator to load with zero latency (0ms).
-- **Selective Replacement:** Preserves original 16:9 widescreen thumbnails for standard YouTube videos, 1:1 album art for Spotify, and dedicated posters for Netflix.
+- **Selective Replacement:** Preserves original 16:9 widescreen thumbnails for standard YouTube videos, 1:1 album art for Spotify, and dedicated posters for Netflix, Apple TV, and DAZN.
 
 ### v0.8.6
 - **Unconstrained Canvas Marquee Viewport (Critical Hotfix):** Resolved the underlying WPF layout engine clipping bug where `TextBlock` elements placed directly inside fixed-width `Grid` cells had an internal `GetLayoutClip` applied to them, truncating all characters beyond 116px (taskbar) and 238px (flyout) during translation.
