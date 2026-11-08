@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Authors>KillianTR</Authors>
-    <Company>KillianTR</Company>
+    <Authors>TaskbarMusicWidget</Authors>
+    <Company>TaskbarMusicWidget</Company>
     <Product>TaskbarMusicWidget</Product>
     <Version>0.9.8</Version>
     <AssemblyVersion>0.9.8.0</AssemblyVersion>
