@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.9.6-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.9.7-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -83,6 +83,13 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.9.7
+- **Bidirectional Bouncing Marquee (Ping-Pong Scroll):** Overhauled overflow text scrolling with a smooth bidirectional bounce effect. Titles and artists now pause at the start for readability, scroll smoothly left-to-right to reveal the full ending, pause, and bounce back seamlessly without blank delays. Synchronized across both the compact taskbar widget and the expanded flyout card.
+- **Official DAZN Integration:** Added native recognition for DAZN broadcasts (via desktop app or browser), displaying the match/event name prominently on top, "DAZN" as the artist below, and bundling the official geometric DAZN logo directly as an embedded application resource.
+- **Netflix Chapter Titles & Live Video Thumbnails:** Upgraded metadata parser to capture both the series name and the specific chapter/episode title (`{Series} — {Chapter}`). Extracts live thumbnail preview frames directly from Windows SMTC sessions with high-resolution vector fallback.
+- **Apple TV Metadata & Streaming Refinements:** Synchronized Apple TV handling with episode title parsing and dedicated visual branding.
+- **Intelligent Platform Attribution:** Replaced generic *"Artista desconocido"* / unknown artist fallbacks with the actual active platform or browser (`Netflix`, `Apple TV`, `DAZN`, `YouTube`, `Twitch`, `Prime Video`, `Disney+`, `Max`, `SoundCloud`, `Opera GX`, etc.) in the artist field, maintaining the event, song, or chapter title prominently on top.
 
 ### v0.9.6
 - **Native Windows 11 Full-Color Vector Emojis:** Integrated OpenType COLR/CPAL vector emoji rendering directly utilizing Windows 11's `Segoe UI Emoji` font. All emojis in song and video titles are rendered in full, crisp color.

@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Versión](https://img.shields.io/badge/versión-v0.9.6-1ED760?style=flat-square)
+![Versión](https://img.shields.io/badge/versión-v0.9.7-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -83,6 +83,13 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.9.7
+- **Marquee Bidireccional con Efecto Rebote (Ping-Pong Scroll):** Rediseño completo de la animación de desplazamiento para textos largos. El título y artista pausan al inicio para una lectura cómoda, se desplazan suavemente hasta mostrar el final del texto, pausan y rebotan en sentido contrario sin vacíos molestos. Sincronizado tanto en el widget de la barra de tareas como en la tarjeta flotante desplegada (*Flyout*).
+- **Integración Oficial de DAZN:** Detección nativa de transmisiones y partidos de DAZN (tanto en aplicación como en navegadores), mostrando el partido/evento arriba, "DAZN" como artista abajo y el logo geométrico oficial de DAZN integrado directamente como recurso del ejecutable.
+- **Captura de Capítulos y Miniaturas en Netflix:** Análisis avanzado de metadatos para extraer simultáneamente el nombre de la serie y el título del capítulo/episodio (`Serie — Capítulo`) sin descartar información. Captura fotogramas de vídeo en tiempo real desde las sesiones SMTC de Windows con carátula de respaldo en alta resolución.
+- **Soporte Dedicado para Apple TV:** Detección de episodios y series en Apple TV con extracción de capítulos y logotipo característico.
+- **Atribución Inteligente de Plataforma como Artista:** Eliminación del texto genérico *"Artista desconocido"*, sustituyéndolo automáticamente por la plataforma o reproductor activo (`Netflix`, `Apple TV`, `DAZN`, `YouTube`, `Twitch`, `Prime Video`, `Disney+`, `Max`, `SoundCloud`, `Opera GX`, etc.), manteniendo siempre el título del contenido en la parte superior.
 
 ### v0.9.6
 - **Emojis Vectoriales en Color Real de Windows 11:** Integración de renderizado de emojis vectoriales OpenType COLR/CPAL utilizando la fuente nativa `Segoe UI Emoji` de Windows 11. Todos los emojis en títulos de canciones y vídeos se muestran a todo color con el estilo Fluent del sistema.
