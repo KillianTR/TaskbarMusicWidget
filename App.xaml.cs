@@ -8,60 +8,73 @@ namespace TaskbarMusicWidget
 {
     public partial class App : Application
     {
+        // All logs live in %LocalAppData%\TaskbarMusicWidget\logs so the app works on any PC
+        // and never writes next to the executable or into a hardcoded user folder.
+        private static readonly string LogDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TaskbarMusicWidget", "logs");
+
+        private const long MaxLogSizeBytes = 1 * 1024 * 1024; // 1 MB, then rotate
+
+        private static readonly object LogLock = new();
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-            DispatcherUnhandledException += (s, args) =>
-            {
-                File.AppendAllText(@"C:\Users\Usuario\Documents\TaskbarMusicWidget\debug.log", $"[{DateTime.Now:HH:mm:ss.fff}] DispatcherUnhandledException: {args.Exception}\n");
-                args.Handled = true;
-            };
+            DispatcherUnhandledException += App_DispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
-            AppDomain.CurrentDomain.UnhandledException += (s, args) =>
-            {
-                File.AppendAllText(@"C:\Users\Usuario\Documents\TaskbarMusicWidget\debug.log", $"[{DateTime.Now:HH:mm:ss.fff}] UnhandledException: {args.ExceptionObject}\n");
-            };
-
-            this.Exit += (s, args) =>
-            {
-                File.AppendAllText(@"C:\Users\Usuario\Documents\TaskbarMusicWidget\debug.log", $"[{DateTime.Now:HH:mm:ss.fff}] App Exit ({args.ApplicationExitCode}):\n{Environment.StackTrace}\n");
-            };
+            this.Exit += (s, args) => LogError("AppExit", $"Exit code {args.ApplicationExitCode}");
         }
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            LogException("DispatcherUnhandledException", e.Exception);
-            e.Handled = true; // Evita que la aplicación se cierre abruptamente
+            LogError("DispatcherUnhandledException", e.Exception.ToString());
+            e.Handled = true; // Keep the widget alive instead of crashing
         }
 
         private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            if (e.ExceptionObject is Exception ex)
-            {
-                LogException("UnhandledException", ex);
-            }
+            LogError("UnhandledException", e.ExceptionObject?.ToString() ?? "(null)");
         }
 
         private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
-            LogException("UnobservedTaskException", e.Exception);
+            LogError("UnobservedTaskException", e.Exception.ToString());
             e.SetObserved();
         }
 
-        private void LogException(string type, Exception ex)
+        /// <summary>
+        /// Writes a line to the widget error log. Never throws: a failing logger must not
+        /// take the app down from inside an exception handler.
+        /// </summary>
+        public static void LogError(string type, string message)
         {
             try
             {
-                string dir = AppDomain.CurrentDomain.BaseDirectory;
-                string logFile = Path.Combine(dir, "widget_error.log");
-                File.AppendAllText(logFile, $"[{DateTime.Now}] {type}: {ex.Message}\n{ex.StackTrace}\n\n");
+                lock (LogLock)
+                {
+                    Directory.CreateDirectory(LogDirectory);
+                    string logFile = Path.Combine(LogDirectory, "widget_error.log");
+
+                    var info = new FileInfo(logFile);
+                    if (info.Exists && info.Length > MaxLogSizeBytes)
+                    {
+                        string oldFile = Path.Combine(LogDirectory, "widget_error.old.log");
+                        File.Copy(logFile, oldFile, overwrite: true);
+                        File.Delete(logFile);
+                    }
+
+                    File.AppendAllText(logFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {type}: {message}\n");
+                }
             }
             catch
             {
-                // Ignorar fallos de escritura de logs
+                // Ignore logging failures
             }
         }
     }

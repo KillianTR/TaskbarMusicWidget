@@ -69,8 +69,47 @@ namespace TaskbarMusicWidget
             {
                 _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
                 _httpClient.DefaultRequestHeaders.Add("Accept-Language", "es-ES,es;q=0.9,en;q=0.8");
+                // Never buffer more than 20 MB from any remote response (search pages, images)
+                _httpClient.MaxResponseContentBufferSize = MaxRemoteResponseBytes;
             }
             catch { }
+        }
+
+        private const long MaxRemoteResponseBytes = 20 * 1024 * 1024;
+        private const int MaxCachedFilesPerFolder = 300;
+
+        // Twitch logins are 1-25 characters: letters, digits and underscores only
+        private static readonly Regex TwitchLoginRegex = new(@"^[A-Za-z0-9_]{1,25}$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Keeps the on-disk avatar/thumbnail caches bounded by deleting the oldest files.
+        /// </summary>
+        private static void PruneImageCaches()
+        {
+            foreach (var dir in new[] { _avatarCacheDir, _thumbCacheDir })
+            {
+                try
+                {
+                    if (!Directory.Exists(dir)) continue;
+                    var files = new DirectoryInfo(dir).GetFiles()
+                        .OrderByDescending(f => f.LastWriteTimeUtc)
+                        .Skip(MaxCachedFilesPerFolder)
+                        .ToList();
+                    foreach (var f in files)
+                    {
+                        try { f.Delete(); } catch { }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static bool EsUrlAvatarTwitchValida(string url)
+        {
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                && uri.Scheme == Uri.UriSchemeHttps
+                && (uri.Host.Equals("static-cdn.jtvnw.net", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.EndsWith(".jtvnw.net", StringComparison.OrdinalIgnoreCase));
         }
 
         #region Win32 API
@@ -253,6 +292,9 @@ namespace TaskbarMusicWidget
 
             SystemEvents.DisplaySettingsChanged += (s, e) => Dispatcher.Invoke(PosicionarEnBarra);
             SystemEvents.UserPreferenceChanged += (s, e) => Dispatcher.Invoke(PosicionarEnBarra);
+
+            // Trim old cached images in the background
+            _ = Task.Run(PruneImageCaches);
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -289,7 +331,7 @@ namespace TaskbarMusicWidget
             {
                 try
                 {
-                    System.IO.File.AppendAllText("widget_error.log", $"[{DateTime.Now}] Error al instanciar FlyoutWindow: {ex}\n");
+                    App.LogError("FlyoutWindowInit", ex.ToString());
                 }
                 catch { }
             }
@@ -1873,11 +1915,22 @@ namespace TaskbarMusicWidget
                 return cached;
             }
 
+            // Only query Twitch with a valid login name; anything else (spaces, quotes, slashes...)
+            // could alter the request, so fall back to the default cover instead.
+            if (!TwitchLoginRegex.IsMatch(channelName))
+            {
+                return null;
+            }
+            string login = channelName.ToLowerInvariant();
+
             // 1. Consulta rápida a Twitch GQL
             try
             {
                 string gqlUrl = "https://gql.twitch.tv/gql";
-                string jsonBody = "{\"query\":\"query { user(login: \\\"" + channelName.ToLowerInvariant() + "\\\") { profileImageURL(width: 300) } }\"}";
+                string jsonBody = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    query = "query { user(login: \"" + login + "\") { profileImageURL(width: 300) } }"
+                });
                 using var request = new HttpRequestMessage(HttpMethod.Post, gqlUrl);
                 request.Headers.Add("Client-Id", "kimne78kx3ncx6brgo4mv6wki5h1ko");
                 request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
@@ -1889,7 +1942,8 @@ namespace TaskbarMusicWidget
                     var match = Regex.Match(json, @"""profileImageURL""\s*:\s*""([^""]+)""");
                     if (match.Success)
                     {
-                        string avatarUrl = match.Groups[1].Value.Replace("\u002F", "/");
+                        string avatarUrl = match.Groups[1].Value.Replace("\\u002F", "/");
+                        if (!EsUrlAvatarTwitchValida(avatarUrl)) throw new InvalidDataException("Unexpected avatar host");
                         var imgBytes = await _httpClient.GetByteArrayAsync(avatarUrl);
                         if (imgBytes != null && imgBytes.Length > 0)
                         {
@@ -1908,7 +1962,7 @@ namespace TaskbarMusicWidget
             // 2. Fallback por scraping directo del canal
             try
             {
-                string pageUrl = $"https://www.twitch.tv/{channelName.ToLowerInvariant()}";
+                string pageUrl = $"https://www.twitch.tv/{login}";
                 using var req = new HttpRequestMessage(HttpMethod.Get, pageUrl);
                 var pageResp = await _httpClient.SendAsync(req);
                 if (pageResp.IsSuccessStatusCode)
