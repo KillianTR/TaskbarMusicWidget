@@ -4,7 +4,7 @@
   <b>English</b> | <a href="README.es.md"><b>Español</b></a>
 </p>
 
-![Version](https://img.shields.io/badge/version-v0.9.8-1ED760?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.9.9-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -83,6 +83,10 @@ The ready-to-use executable will be generated at:
 ---
 
 ## 📌 Version History (Changelog)
+
+### v0.9.9
+- **Native Browser & Platform Icon Fallback:** Integrated automatic high-resolution icon resolution for web browsers (Opera GX, Google Chrome, Microsoft Edge, Brave, Vivaldi, Mozilla Firefox) and desktop players. When playing web audio streams (such as online podcasts or media players) that do not broadcast an album cover via SMTC, the widget automatically displays the crisp official application icon as the cover artwork across the taskbar and flyout card.
+- **Opera GX Visual Asset Integration:** Embedded the official 256x256 high-resolution Opera GX branding directly into the application resources for instant, zero-latency rendering whenever media plays from Opera GX.
 
 ### v0.9.8
 - **Robust Twitch Stream & Channel Avatar Resolution:** Enhanced detection for live streams featuring chat commands or social tags in their stream titles, ensuring seamless retrieval and display of the official channel profile picture across the taskbar and flyout even when playing in background tabs.

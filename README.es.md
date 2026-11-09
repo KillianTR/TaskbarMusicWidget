@@ -4,7 +4,7 @@
   <a href="README.md"><b>English</b></a> | <b>Español</b>
 </p>
 
-![Versión](https://img.shields.io/badge/versión-v0.9.8-1ED760?style=flat-square)
+![Versión](https://img.shields.io/badge/versión-v0.9.9-1ED760?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square)
 ![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -83,6 +83,10 @@ El ejecutable listo para usar se generará en:
 ---
 
 ## 📌 Historial de Versiones (Changelog)
+
+### v0.9.9
+- **Icono Oficial de Navegador como Portada de Respaldo:** Integración de resolución automática de iconos en alta definición para navegadores web (Opera GX, Google Chrome, Microsoft Edge, Brave, Vivaldi, Mozilla Firefox) y reproductores del sistema. Al reproducir contenidos de audio web (como podcasts en línea o reproductores web) que no proporcionan carátula a través de SMTC, el widget muestra automáticamente el icono oficial de la aplicación como portada tanto en la barra de tareas como en la tarjeta flotante (*Flyout*).
+- **Integración del Logotipo de Opera GX en Alta Resolución:** Incorporación del icono oficial de 256x256 de Opera GX directamente en los recursos integrados del ensamblado para una carga instantánea y nítida al reproducir medios desde Opera GX.
 
 ### v0.9.8
 - **Resolución Robusta de Streams y Avatares de Canales en Twitch:** Optimización en la detección de emisiones en directo con comandos de chat o etiquetas en el título, garantizando la carga inmediata del avatar oficial del canal tanto en la barra de tareas como en la tarjeta flotante, incluso con pestañas en segundo plano.

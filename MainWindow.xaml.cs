@@ -86,6 +86,13 @@ namespace TaskbarMusicWidget
         [DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern int PrivateExtractIcons(string lpszFile, int nIconIndex, int cxIcon, int cyIcon, IntPtr[] phicon, int[] piconid, int nIcons, int flags);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -1298,6 +1305,176 @@ namespace TaskbarMusicWidget
                 return "";
             }
             return t;
+        }
+
+        private static ImageSource? _operaGxDefaultCover;
+        private static readonly ConcurrentDictionary<string, ImageSource> _appIconCache = new(StringComparer.OrdinalIgnoreCase);
+
+        private static ImageSource ObtenerPortadaOperaGxDefault()
+        {
+            if (_operaGxDefaultCover != null) return _operaGxDefaultCover;
+
+            // 1. Cargar el logo oficial de Opera GX desde los recursos integrados del ensamblado
+            string[] uriCandidates =
+            {
+                "pack://application:,,,/TaskbarMusicWidget;component/assets/operagx_logo.png",
+                "pack://application:,,,/assets/operagx_logo.png"
+            };
+
+            foreach (var uriStr in uriCandidates)
+            {
+                try
+                {
+                    var uri = new Uri(uriStr, UriKind.Absolute);
+                    var bmp = new BitmapImage();
+                    bmp.BeginInit();
+                    bmp.UriSource = uri;
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    _operaGxDefaultCover = bmp;
+                    return _operaGxDefaultCover;
+                }
+                catch { }
+            }
+
+            // 2. Intentar cargar el archivo directamente desde el directorio de la aplicación
+            try
+            {
+                string localPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets", "operagx_logo.png");
+                if (System.IO.File.Exists(localPath))
+                {
+                    var bmp = new BitmapImage();
+                    bmp.BeginInit();
+                    bmp.UriSource = new Uri(localPath, UriKind.Absolute);
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.EndInit();
+                    bmp.Freeze();
+                    _operaGxDefaultCover = bmp;
+                    return _operaGxDefaultCover;
+                }
+            }
+            catch { }
+
+            // 3. Extraer el icono de 256x256 directamente del proceso en ejecución de Opera GX
+            try
+            {
+                var icon = ExtraerIconoDeProceso("opera");
+                if (icon != null)
+                {
+                    _operaGxDefaultCover = icon;
+                    return _operaGxDefaultCover;
+                }
+            }
+            catch { }
+
+            return null!;
+        }
+
+        private static ImageSource? ObtenerIconoPlataformaONavegador(string? appModelId)
+        {
+            if (string.IsNullOrEmpty(appModelId)) return null;
+
+            if (_appIconCache.TryGetValue(appModelId, out var cached) && cached != null)
+            {
+                return cached;
+            }
+
+            if (appModelId.Contains("Opera", StringComparison.OrdinalIgnoreCase))
+            {
+                var operaIcon = ObtenerPortadaOperaGxDefault();
+                if (operaIcon != null)
+                {
+                    _appIconCache[appModelId] = operaIcon;
+                    return operaIcon;
+                }
+            }
+
+            string procName = ObtenerNombreProcesoNavegador(appModelId);
+            if (!string.IsNullOrEmpty(procName))
+            {
+                var icon = ExtraerIconoDeProceso(procName);
+                if (icon != null)
+                {
+                    _appIconCache[appModelId] = icon;
+                    return icon;
+                }
+            }
+
+            // Fallback por nombre de proceso genérico si appModelId contiene el nombre del ejecutable
+            try
+            {
+                string cleanId = appModelId.Replace(".exe", "", StringComparison.OrdinalIgnoreCase);
+                int lastDot = cleanId.LastIndexOf('.');
+                if (lastDot >= 0 && lastDot < cleanId.Length - 1)
+                {
+                    cleanId = cleanId.Substring(lastDot + 1);
+                }
+                var icon = ExtraerIconoDeProceso(cleanId);
+                if (icon != null)
+                {
+                    _appIconCache[appModelId] = icon;
+                    return icon;
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private static ImageSource? ExtraerIconoDeProceso(string processName)
+        {
+            try
+            {
+                var procs = Process.GetProcessesByName(processName);
+                if (procs == null || procs.Length == 0) return null;
+
+                foreach (var proc in procs)
+                {
+                    try
+                    {
+                        string? filePath = proc.MainModule?.FileName;
+                        if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+                        {
+                            var bmp = ExtraerIconoGrandeDeArchivo(filePath, 256);
+                            if (bmp != null) return bmp;
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static BitmapSource? ExtraerIconoGrandeDeArchivo(string filePath, int size = 256)
+        {
+            try
+            {
+                if (!File.Exists(filePath)) return null;
+
+                IntPtr[] phicon = new IntPtr[1];
+                int[] piconid = new int[1];
+                int count = PrivateExtractIcons(filePath, 0, size, size, phicon, piconid, 1, 0);
+                if (count > 0 && phicon[0] != IntPtr.Zero)
+                {
+                    try
+                    {
+                        var bmp = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                            phicon[0],
+                            Int32Rect.Empty,
+                            BitmapSizeOptions.FromEmptyOptions());
+                        bmp.Freeze();
+                        return bmp;
+                    }
+                    finally
+                    {
+                        DestroyIcon(phicon[0]);
+                    }
+                }
+            }
+            catch { }
+            return null;
         }
 
         private static ImageSource? _daznDefaultCover;
@@ -2710,8 +2887,10 @@ namespace TaskbarMusicWidget
                     }
                     else
                     {
-                        _currentCover = null;
-                        AlbumArt.Source = null;
+                        // Si no hay miniatura de SMTC, obtener el icono oficial de la plataforma o navegador (ej. Opera GX, Chrome, etc.)
+                        var icon = ObtenerIconoPlataformaONavegador(_currentSession.SourceAppUserModelId);
+                        _currentCover = icon;
+                        AlbumArt.Source = icon;
                     }
                 }
 
